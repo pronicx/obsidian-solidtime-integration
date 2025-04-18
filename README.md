@@ -1,94 +1,130 @@
-# Obsidian Sample Plugin
+# Obsidian SolidTime Integration Plugin
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/pronicx/obsidian-solidtime-integration?style=for-the-badge&sort=semver)](https://github.com/pronicx/obsidian-solidtime-integration/releases/latest)
+[![GitHub All Releases](https://img.shields.io/github/downloads/pronicx/obsidian-solidtime-integration/total?style=for-the-badge)](https://github.com/pronicx/obsidian-solidtime-integration/releases)
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+Connect Obsidian with your [SolidTime.io](https://solidtime.io/) account to seamlessly track your work time directly within your vault. Start, stop, and view your current timer without leaving Obsidian.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+<!-- Add a screenshot of the sidebar view here -->
+![SolidTime Tracker Sidebar View](images/screenshot-sidebar.png)
 
-## First time developing plugins?
+## Features
 
-Quick starting guide for new plugin devs:
+*   **Connect to SolidTime:** Securely connect to your SolidTime account using an API Token.
+*   **Sidebar Tracker View:**
+    *   Displays the currently running timer's description, project (with color indicator), and elapsed duration.
+    *   Shows icons indicating billable status and whether tags are applied.
+    *   Provides a prominent Play/Stop button to control the timer.
+    *   Allows editing the running timer's description directly in the view.
+    *   Allows changing the running timer's project via a suggestion modal.
+    *   Allows toggling the billable status of the running timer.
+    *   Allows selecting/deselecting tags for the running timer via a modal (includes creating new tags).
+*   **Status Bar Item:** Shows the current timer's duration and project/description (configurable) in the Obsidian status bar.
+*   **Commands:**
+    *   Start Timer (opens a modal to select project, task (optional), description, tags, billable status).
+    *   Stop Current Timer.
+    *   Show Tracker View (opens the sidebar view).
+    *   Show Current Timer Details (displays timer info in a notice).
+    *   Refresh SolidTime Data (manually updates projects, tasks, tags).
+    *   Refresh User Info.
+*   **Modals:**
+    *   Start Timer Modal for detailed entry creation.
+    *   Project Suggestion Modal for quick project selection.
+    *   Tag Selection Modal for managing tags on running timers (supports creating new tags).
+*   **Automatic Refresh:** Periodically fetches updated project/task/tag lists and checks the current timer status (intervals configurable).
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Requirements
 
-## Releasing new releases
+*   Obsidian v1.0.0 or higher.
+*   A SolidTime account ([solidtime.io](https://solidtime.io/)).
+*   A SolidTime Personal Access Token.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+## Installation
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### From Community Plugins (Recommended)
 
-## Adding your plugin to the community plugin list
+1.  Open Obsidian Settings > Community Plugins.
+2.  Ensure "Restricted mode" is **off**.
+3.  Click **Browse** community plugins.
+4.  Search for "SolidTime Integration".
+5.  Click **Install**.
+6.  Once installed, click **Enable**.
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### Manual Installation
 
-## How to use
+1.  Download the latest release files (`main.js`, `manifest.json`, `styles.css`) from the [Releases page](https://github.com/pronicx/obsidian-solidtime-integration/releases/latest).
+2.  Navigate to your Obsidian vault's plugins folder: `YourVault/.obsidian/plugins/`.
+3.  Create a new folder named `obsidian-solidtime-integration`.
+4.  Copy the downloaded `main.js`, `manifest.json`, and `styles.css` files into this new folder.
+5.  Reload Obsidian (Ctrl/Cmd+R or close and reopen).
+6.  Go to Settings > Community Plugins, find "SolidTime Integration", and enable it.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+*(Alternatively, use the BRAT plugin to install pre-releases or directly from the repository URL.)*
 
-## Manually installing the plugin
+## Configuration
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+After installing and enabling the plugin, you need to configure it:
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+1.  **Generate API Token:**
+    *   Log in to your SolidTime account ([app.solidtime.io](https://app.solidtime.io/)).
+    *   Navigate to your user profile settings / API section. [SolidTime API Token Guide](https://docs.solidtime.io/user-guide/access-api)
+    *   Create a new Personal Access Token. Give it a descriptive name (e.g., "Obsidian Plugin").
+    *   **Important:** Copy the generated token immediately. You won't be able to see it again.
+2.  **Obsidian Settings:**
+    *   Open Obsidian Settings > SolidTime Integration (in the sidebar under Community Plugins).
+    *   **SolidTime API Key:** Paste the Personal Access Token you just generated.
+    *   **SolidTime API Base URL:** This usually defaults to `https://app.solidtime.io/api`. Adjust only if you are using a self-hosted instance.
+    *   **Active Organization:** Once the API Key and Base URL are entered correctly, this dropdown should populate with the organizations your user belongs to. Select the primary organization you want to track time for by default.
+    *   **Default Billable:** Choose whether new timers started via the plugin should be marked as billable by default.
+    *   **Status Bar Update Interval:** How often (in seconds) the status bar item should refresh the running timer's duration. Set to 0 to disable interval updates.
+    *   **Data Auto-Fetch Interval:** How often (in minutes) the plugin should automatically fetch updated lists of projects, tasks, and tags from SolidTime. Set to 0 to disable automatic fetching (you can still use the "Refresh SolidTime Data" command).
 
-## Funding URL
+## Usage
 
-You can include funding URLs where people who use your plugin can financially support it.
+### Sidebar View
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+*   **Open:** Use the "SolidTime: Show Tracker View" command from the Command Palette (Ctrl/Cmd+P).
+*   **Description:** Shows the current timer's description. Click on it to edit the description while the timer is running. Press Enter or click outside the input field to save.
+*   **Project:** Shows the current timer's project (with its color). Click on it to open a modal and select a different project (or no project) for the running timer.
+*   **Tag Icon (`tag`):** Appears faint if no tags are applied, and colored if tags are present. Click to open a modal where you can select/deselect existing tags or create new ones for the running timer.
+*   **Billable Icon (`dollar-sign`):** Appears faint if not billable, and colored if billable. Click to toggle the billable status of the running timer.
+*   **Play/Stop Button:**
+    *   Shows a **Play** icon (green) when no timer is running. Click to open the "Start Timer" modal.
+    *   Shows a **Stop** icon (red) when a timer is running. Click to stop the current timer.
+*   **Duration:** Displays the elapsed time for the currently running timer (updates every second).
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+### Commands (Command Palette: Ctrl/Cmd+P)
 
-If you have multiple URLs, you can also do:
+*   **SolidTime: Start Timer (Prompt):** Opens a modal allowing you to enter a description, select a project, task (optional), tags, and set billable status before starting a new timer.
+*   **SolidTime: Stop Current Timer:** Stops the currently running timer, if any.
+*   **SolidTime: Show Tracker View:** Opens or focuses the sidebar view.
+*   **SolidTime: Show Current Timer Details:** Shows a notification with details about the currently running timer.
+*   **SolidTime: Refresh SolidTime Data:** Manually fetches the latest projects, tasks, and tags from your SolidTime account.
+*   **SolidTime: Refresh User Info:** Manually refetches your user details from SolidTime.
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+### Status Bar
 
-## API Documentation
+*   An item appears in the bottom status bar.
+*   When idle, it shows "SolidTime" (or "Setup Needed" if not configured).
+*   When a timer is running, it displays an icon (⏱️), the elapsed duration, and potentially the project name and truncated description. Hover over it for more details.
 
-See https://github.com/obsidianmd/obsidian-api
+## Contributing
+
+Contributions, bug reports, and feature requests are welcome! Please feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/pronicx/obsidian-solidtime-integration).
+
+## Support
+
+If you find this plugin helpful, consider supporting me. Every help is appreciated.
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/proniclabs)
+
+## License
+
+This plugin is released under the [MIT License](LICENSE).
+
+## Acknowledgements
+
+*   Uses the [SolidTime API](https://solidtime.io/).
+*   Uses the [Luxon](https://moment.github.io/luxon/) library for date/time handling (Bundled).
+*   Built for [Obsidian](https://obsidian.md).
+*    **Inspired by and oriented towards the structure of the [obsidian-toggl-integration](https://github.com/mcndt/obsidian-toggl-integration) plugin by @mcndt.**

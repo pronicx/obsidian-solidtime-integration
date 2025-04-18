@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"id": "obsidian-solidtime-integration",
+	"name": "SolidTime Integration",
+	"version": "0.1.0",
+	"minAppVersion": "1.0.0",
+	"description": "Integrates SolidTime time tracking into Obsidian.",
+	"author": "proniclabs",
+	"authorUrl": "https://github.com/pronicx",
+	"fundingUrl": "https://buymeacoffee.com/proniclabs",
 	"isDesktopOnly": false
 }
