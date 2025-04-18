@@ -1,0 +1,70 @@
+name: Create Release
+
+# Trigger this workflow when a new tag starting with 'v' (e.g., v1.0.0) is pushed
+on:
+  push:
+    tags:
+      - 'v*' # Matches tags like v1.0, v2.3.4
+
+# Environment variables to make asset names easier to manage
+env:
+  PLUGIN_NAME: obsidian-solidtime-integration # Change if needed
+
+jobs:
+  build-release:
+    name: Build and Release Plugin
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+
+    steps:
+      # 1. Checkout the repository code at the specific tag
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x' # Specify your Node.js version
+          cache: 'npm' # Cache npm dependencies
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci # Use 'ci' for cleaner installs in CI environments
+
+      # 4. Build the plugin (this generates main.js)
+      - name: Build plugin
+        run: npm run build
+
+      # --- Prepare Assets ---
+      # We need main.js (built), styles.css, and manifest.json
+
+      # 5. Create ZIP archive
+      - name: Create ZIP package
+        # Extract version from the tag (e.g., v1.2.3 -> 1.2.3)
+        run: |
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          echo "TAG_VERSION=${TAG_VERSION}" >> $GITHUB_ENV
+          zip ${{ env.PLUGIN_NAME }}-${TAG_VERSION}.zip main.js manifest.json styles.css
+        shell: bash # Use bash for string manipulation
+
+      # 6. Create GitHub Release and Upload Assets
+      - name: Create Release
+        uses: softprops/action-gh-release@v2 # Use a popular action for creating releases
+        with:
+          # Use the version extracted from the tag for the release name/tag
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ env.TAG_VERSION }}
+          # Body can be empty, manually edited later, or generated from changelog (advanced)
+          # body: |
+          #   Release notes for version ${{ env.TAG_VERSION }}
+          #   - Feature A
+          #   - Bugfix B
+          # Mark as pre-release if tag contains 'beta', 'alpha', etc. (optional)
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+          files: | # List files to upload as assets
+            main.js
+            manifest.json
+            styles.css
+            ${{ env.PLUGIN_NAME }}-${{ env.TAG_VERSION }}.zip # Upload the ZIP archive
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required for the action to interact with GitHub API
