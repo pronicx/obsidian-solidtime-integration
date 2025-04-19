@@ -203,7 +203,7 @@ export class SolidTimeView extends ItemView {
              const newProjectId = selectedProject?.id || null;
 
              if (currentProjectId !== newProjectId) {
-                console.log("Changing project to:", selectedProject?.name || "None");
+                // console.log("Changing project to:", selectedProject?.name || "None");
                  this.plugin.updateActiveTimerDetails({ projectId: newProjectId });
                  // Note: The view will fully re-render after the update completes
              }
@@ -222,16 +222,13 @@ export class SolidTimeView extends ItemView {
                            !currentTagIds.every(id => newSelectedIds.includes(id));
 
             if (changed) {
-                console.log("Updating tags to:", newSelectedIds);
+                // console.log("Updating tags to:", newSelectedIds);
                  this.plugin.updateActiveTimerDetails({ tagIds: newSelectedIds });
             } else {
-                 console.log("Tag selection unchanged.");
+                // console.log("Tag selection unchanged.");
             }
         }).open();
     }
-
-
-    // --- Duration Update Logic ---
 
     clearDurationInterval() {
         if (this.durationIntervalId !== null) {

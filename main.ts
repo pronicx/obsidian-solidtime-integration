@@ -34,7 +34,6 @@ export default class SolidTimePlugin extends Plugin {
     tags: TagResource[] = [];
     currentUser: UserResource | null = null;
 
-    solidTimeView: SolidTimeView | null = null;
 
     async onload() {
         await this.loadSettings();
@@ -42,10 +41,7 @@ export default class SolidTimePlugin extends Plugin {
         // --- View Registration ---
         this.registerView(
             SOLIDTIME_VIEW_TYPE,
-            (leaf) => {
-                this.solidTimeView = new SolidTimeView(leaf, this);
-                return this.solidTimeView;
-            }
+            (leaf) => new SolidTimeView(leaf, this)
         );
         // --- End View Registration ---
 
@@ -59,9 +55,9 @@ export default class SolidTimePlugin extends Plugin {
 
         if (this.api) {
             try {
-                console.log("SolidTime: Fetching current user on load...");
+                // console.log("SolidTime: Fetching current user on load...");
                 this.currentUser = await this.api.getMe();
-                console.log("SolidTime: Current user fetched:", this.currentUser?.name);
+                // console.log("SolidTime: Current user fetched:", this.currentUser?.name);
             } catch (e) {
                 console.error("SolidTime: Failed to fetch current user on load", e);
                 if (this.settings.apiKey && this.settings.apiBaseUrl) {
@@ -76,7 +72,14 @@ export default class SolidTimePlugin extends Plugin {
             this.setupIntervals();
         } else {
             this.statusBarItemEl.setText('SolidTime: Check Settings');
-            // ... (rest of the notice logic) ...
+            // Show notice based on which part is missing
+            if (!this.settings.apiKey || !this.settings.apiBaseUrl) {
+                // Notice handled by checkSettingsAndApi if called with showNotice=true
+            } else if (!this.settings.selectedOrganizationId) {
+                // Notice handled by checkSettingsAndApi if called with showNotice=true
+            } else if (!this.currentUser && this.settings.apiKey && this.settings.apiBaseUrl) {
+                new Notice("SolidTime Plugin: Could not fetch user data. Check connection or API key.");
+            }
         }
 
 
@@ -86,12 +89,14 @@ export default class SolidTimePlugin extends Plugin {
             name: 'Start Timer (Prompt)',
             callback: () => {
                 if (!this.checkSettingsAndApi()) return;
-                if (this.projects.length === 0 && this.tags.length === 0 && this.tasks.length === 0) {
-                    console.log("SolidTime: Data might not be loaded yet for modal.");
-                    new Notice("Fetching SolidTime data... Please try again shortly.");
-                    this.loadSolidTimeData();
-                    return;
-                }
+                // Check if data seems reasonable before opening modal
+                // This is a heuristic, might need refinement if empty lists are valid
+                // if (this.projects.length === 0 && this.tags.length === 0 && this.tasks.length === 0) {
+                //    console.log("SolidTime: Data might not be loaded yet for modal.");
+                //    new Notice("Fetching SolidTime data... Please try again shortly.");
+                //    this.loadSolidTimeData(); // Trigger load again
+                //    return;
+                // }
                 new StartTimerModal(this.app, this).open();
             },
         });
@@ -135,7 +140,7 @@ export default class SolidTimePlugin extends Plugin {
             callback: async () => {
                 if (!this.api) { new Notice("SolidTime: API not configured."); return; }
                 try {
-                    console.log("SolidTime: Manually refreshing user info...");
+                    // console.log("SolidTime: Manually refreshing user info...");
                     this.currentUser = await this.api.getMe();
                     new Notice(`SolidTime: User info refreshed (${this.currentUser?.name}).`);
                 } catch (e) {
@@ -145,7 +150,6 @@ export default class SolidTimePlugin extends Plugin {
             },
         });
 
-        // --- Command to Activate View ---
         this.addCommand({
             id: 'solidtime-show-view',
             name: 'Show Tracker View',
@@ -154,73 +158,69 @@ export default class SolidTimePlugin extends Plugin {
             },
         });
 
+        this.addRibbonIcon('clock', 'Open SolidTime Tracker', () => {
+            this.activateView();
+        });
+
 
         console.log('SolidTime Plugin Loaded');
     }
 
-    // --- Method to open the view in the right sidebar ---
     async activateView() {
         const { workspace } = this.app;
-
         let leaf: WorkspaceLeaf | null = null;
         const leaves = workspace.getLeavesOfType(SOLIDTIME_VIEW_TYPE);
 
-        if (leaves.length > 0) {
-            // Reveal existing view
-            leaf = leaves[0];
-        } else {
-            // Create new view in the right sidebar
-            leaf = workspace.getRightLeaf(false); // false = don't split if sidebar is hidden
-            if (!leaf) { // Handle case where sidebar might not exist yet
-                console.error("SolidTime: Could not get right leaf for the view.");
-                return;
-            }
+        if (leaves.length > 0) { leaf = leaves[0]; }
+        else {
+            leaf = workspace.getRightLeaf(false);
+            if (!leaf) { console.error("SolidTime: Could not get right leaf for the view."); return; }
             await leaf.setViewState({ type: SOLIDTIME_VIEW_TYPE, active: true });
         }
-
-        // Reveal the leaf if it exists
-        if (leaf) {
-            workspace.revealLeaf(leaf);
-        }
+        if (leaf) { workspace.revealLeaf(leaf); }
     }
-    // --- End Activate View Method ---
 
-    // --- Method to trigger view updates ---
     updateSolidTimeView() {
-        if (this.solidTimeView) {
-            // console.log("Triggering view update from plugin"); // For debugging
-            this.solidTimeView.updateView();
+        // Get all leaves of our view type
+        const leaves: WorkspaceLeaf[] = this.app.workspace.getLeavesOfType(SOLIDTIME_VIEW_TYPE);
+
+        // Iterate over the retrieved leaves
+        for (const leaf of leaves) {
+            // Check if the view attached to the leaf is actually our SolidTimeView
+            if (leaf.view instanceof SolidTimeView) {
+                // console.log("Updating a SolidTimeView instance in leaf:", leaf.id); // Optional debug log
+                // Call the update method on the specific view instance
+                leaf.view.updateView();
+            }
         }
     }
-    // --- End Method ---
 
-    onunload() { // unload remains the same
+    onunload() {
         this.clearTimers();
         if (this.statusBarItemEl) {
             this.statusBarItemEl.remove();
         }
-
-        // --- Detach View ---
-        this.app.workspace.detachLeavesOfType(SOLIDTIME_VIEW_TYPE);
-        // --- End Detach View ---
-
-        console.log('SolidTime Plugin Unloaded');
+        // --- Detach Leaves Guideline Applied: REMOVED detachLeavesOfType ---
+        // this.app.workspace.detachLeavesOfType(SOLIDTIME_VIEW_TYPE);
+        // --- End Detach Leaves Guideline ---
+        console.log('SolidTime Plugin Unloaded'); // Keep essential lifecycle log
     }
 
     async loadSettings() { // loadSettings remains the same
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     }
 
-    async saveSettings() { // saveSettings logic remains the same (calls setupApi etc)
+    async saveSettings() {
         await this.saveData(this.settings);
         const previousApi = this.api;
         this.setupApi();
 
-        if (this.api && !previousApi) {
+        // Refetch user if API setup changed or was successful now
+        if (this.api && (!previousApi || !this.currentUser)) { // Refetch if API setup changed OR user was missing
             try {
-                console.log("SolidTime: API configured, fetching user...");
+                // console.log("SolidTime: API configured/changed, fetching user..."); // Removed verbose log
                 this.currentUser = await this.api.getMe();
-                console.log("SolidTime: User fetched after settings save:", this.currentUser?.name);
+                // console.log("SolidTime: User fetched after settings save:", this.currentUser?.name); // Removed verbose log
             } catch (e) {
                 console.error("SolidTime: Failed to fetch current user after settings save", e);
                 this.currentUser = null;
@@ -230,9 +230,10 @@ export default class SolidTimePlugin extends Plugin {
             this.currentUser = null;
         }
 
+        // Proceed with data load and intervals only if fully configured
         if (this.api && this.settings.selectedOrganizationId) {
             await this.loadSolidTimeData();
-            await this.updateStatus();
+            await this.updateStatus(); // updateStatus calls updateSolidTimeView
             this.setupIntervals();
         } else {
             this.clearTimers();
@@ -242,67 +243,66 @@ export default class SolidTimePlugin extends Plugin {
                 this.statusBarItemEl.removeClass('solidtime-active');
                 this.statusBarItemEl.removeAttribute('title');
             }
+            // Clear data and update view if config becomes invalid
             this.projects = []; this.tasks = []; this.tags = [];
-
-            this.updateSolidTimeView(); // Update view to show "Check Settings" state
+            this.updateSolidTimeView(); // Update view to reflect cleared state/setup needed
         }
     }
 
-    setupApi() { // setupApi remains the same
+    setupApi() {
         if (this.settings.apiKey && this.settings.apiBaseUrl) {
-            this.api = new SolidTimeApi(this.settings.apiKey, this.settings.apiBaseUrl);
+            if (!this.api || this.api['apiKey'] !== this.settings.apiKey || this.api['baseUrl'] !== this.settings.apiBaseUrl) {
+                // console.log("SolidTime: Initializing/Updating API client..."); // Removed verbose log
+                this.api = new SolidTimeApi(this.settings.apiKey, this.settings.apiBaseUrl);
+            }
         } else {
-            if (this.api) console.log("SolidTime: De-initializing API client due to missing settings.");
+            // if(this.api) console.log("SolidTime: De-initializing API client due to missing settings."); // Removed verbose log
             this.api = null;
         }
     }
 
-    checkSettingsAndApi(showNotice = true): boolean { // checkSettingsAndApi remains the same
+    checkSettingsAndApi(showNotice = true): boolean {
         let valid = true;
         let message = "";
 
         if (!this.settings.apiKey || !this.settings.apiBaseUrl) {
-            message = "SolidTime API Key or Base URL not set.";
-            valid = false;
+            message = "SolidTime API Key or Base URL not set."; valid = false;
         } else if (!this.settings.selectedOrganizationId) {
-            message = "SolidTime Organization not selected.";
-            valid = false;
+            message = "SolidTime Organization not selected."; valid = false;
         } else if (!this.api) {
             message = "SolidTime API client not initialized.";
-            this.setupApi();
+            this.setupApi(); // Try again
             if (!this.api) valid = false;
         }
 
-        if (!valid && showNotice) {
-            new Notice(message + " Please configure in plugin settings.");
-        }
+        if (!valid && showNotice) { new Notice(message + " Please configure in plugin settings."); }
         return valid;
     }
 
-    clearTimers() { // clearTimers remains the same
+    clearTimers() {
         if (this.statusIntervalId) { window.clearInterval(this.statusIntervalId); this.statusIntervalId = null; }
         if (this.fetchIntervalId) { window.clearInterval(this.fetchIntervalId); this.fetchIntervalId = null; }
     }
 
-    setupIntervals() { // setupIntervals remains the same
+    setupIntervals() {
         this.clearTimers();
         if (this.settings.statusBarUpdateIntervalSeconds > 0 && this.api) {
             this.statusIntervalId = window.setInterval(() => this.updateStatus(), this.settings.statusBarUpdateIntervalSeconds * 1000);
-            console.log(`SolidTime: Status interval set to ${this.settings.statusBarUpdateIntervalSeconds}s`);
+            // console.log(`SolidTime: Status interval set to ${this.settings.statusBarUpdateIntervalSeconds}s`);
         }
         if (this.settings.autoFetchIntervalMinutes > 0 && this.api && this.settings.selectedOrganizationId) {
             this.fetchIntervalId = window.setInterval(() => this.loadSolidTimeData(), this.settings.autoFetchIntervalMinutes * 60 * 1000);
-            console.log(`SolidTime: Fetch interval set to ${this.settings.autoFetchIntervalMinutes}min`);
+            // console.log(`SolidTime: Fetch interval set to ${this.settings.autoFetchIntervalMinutes}min`);
         }
     }
 
-    async loadSolidTimeData() { // loadSolidTimeData remains the same
+    async loadSolidTimeData() {
         if (!this.api || !this.settings.selectedOrganizationId) {
-            console.log("SolidTime: Cannot fetch data, API or Organization not configured.");
+            // console.log("SolidTime: Cannot fetch data, API or Organization not configured.");
             this.projects = []; this.tasks = []; this.tags = [];
             return;
         }
-        console.log("SolidTime: Fetching data for org:", this.settings.selectedOrganizationId);
+        // console.log("SolidTime: Fetching data for org:", this.settings.selectedOrganizationId);
         try {
             const [projects, tasks, tags] = await Promise.all([
                 this.api.getProjects(this.settings.selectedOrganizationId),
@@ -310,7 +310,7 @@ export default class SolidTimePlugin extends Plugin {
                 this.api.getTags(this.settings.selectedOrganizationId)
             ]);
             this.projects = projects || []; this.tasks = tasks || []; this.tags = tags || [];
-            console.log(`SolidTime: Fetched ${this.projects.length} projects, ${this.tasks.length} tasks, ${this.tags.length} tags.`);
+            // console.log(`SolidTime: Fetched ${this.projects.length} projects, ${this.tasks.length} tasks, ${this.tags.length} tags.`);
         } catch (error) {
             console.error("SolidTime: Failed to fetch data", error);
             this.projects = []; this.tasks = []; this.tags = [];
@@ -324,12 +324,12 @@ export default class SolidTimePlugin extends Plugin {
         tagIds?: string[];
         billable?: boolean;
     }) {
-        console.log("Attempting to update timer with:", updates); // Debug log
+        // console.log("Attempting to update timer with:", updates); // Debug log
 
         if (!this.api) { new Notice("SolidTime: API not configured."); return; }
         if (!this.currentUser) {
-             try { this.currentUser = await this.api.getMe(); }
-             catch (e) { new Notice("Error: Could not verify current user."); return; }
+            try { this.currentUser = await this.api.getMe(); }
+            catch (e) { new Notice("Error: Could not verify current user."); return; }
         }
         if (!this.activeTimeEntry) { new Notice("SolidTime: No timer is running to update."); return; }
         if (!this.activeTimeEntry.organization_id || !this.activeTimeEntry.start) {
@@ -362,7 +362,7 @@ export default class SolidTimePlugin extends Plugin {
             tags: 'tagIds' in updates ? updates.tagIds : entryToUpdate.tags,
         };
 
-        console.log("Update Payload:", JSON.stringify(payloadToSend, null, 2));
+        // console.log("Update Payload:", JSON.stringify(payloadToSend, null, 2));
 
         try {
             new Notice("SolidTime: Updating timer...");
@@ -384,9 +384,7 @@ export default class SolidTimePlugin extends Plugin {
             await this.updateStatus();
         }
     }
-    // --- End Update Method ---
 
-    // Create Tag Passthrough
     async createTag(tagName: string): Promise<TagResource | null> {
         if (!this.checkSettingsAndApi()) return null;
         if (!this.settings.selectedOrganizationId) {
@@ -404,8 +402,7 @@ export default class SolidTimePlugin extends Plugin {
             // Notice might be shown by API layer
             return null;
         }
-   }
-    // End Create Tag Passthrough
+    }
 
     async updateStatus() { // updateStatus logic remains the same, relies on renderStatusBar
         if (!this.api) {
@@ -494,10 +491,7 @@ export default class SolidTimePlugin extends Plugin {
         if (!this.settings.selectedMemberId) { new Notice("Error: Member ID missing. Please re-select organization in settings."); return; }
         if (this.activeTimeEntry) { new Notice("SolidTime: Please stop the current timer first."); return; }
 
-        // --- Luxon Conversion ---
-        // Generate start time WITHOUT milliseconds, consistent with successful 'end' format
         const start = DateTime.utc().toFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        // --- End Luxon Conversion ---
 
         const payload: TimeEntryStartPayload = {
             member_id: this.settings.selectedMemberId,
@@ -511,7 +505,7 @@ export default class SolidTimePlugin extends Plugin {
 
         try {
             new Notice("SolidTime: Starting timer...");
-            console.log("Start Timer Payload:", JSON.stringify(payload, null, 2)); // Log start payload
+            // console.log("Start Timer Payload:", JSON.stringify(payload, null, 2)); // Log start payload
             const newEntry = await this.api!.startTimeEntry(this.settings.selectedOrganizationId, payload);
             this.activeTimeEntry = newEntry;
             this.renderStatusBar();
@@ -525,8 +519,15 @@ export default class SolidTimePlugin extends Plugin {
     async stopCurrentTimer() {
         if (!this.api) { new Notice("SolidTime: API not configured."); return; }
         if (!this.currentUser) {
-            try { console.log("SolidTime: Fetching current user before stopping timer..."); this.currentUser = await this.api.getMe(); }
-            catch (e) { console.error("SolidTime: Failed to get current user", e); new Notice("Error: Could not verify current user. Cannot stop timer."); return; }
+            try {
+                // console.log("SolidTime: Fetching current user before stopping timer...");
+                this.currentUser = await this.api.getMe();
+            }
+            catch (e) {
+                console.error("SolidTime: Failed to get current user", e);
+                new Notice("Error: Could not verify current user. Cannot stop timer.");
+                return;
+            }
         }
         if (!this.activeTimeEntry) { new Notice("SolidTime: No timer is currently running."); return; }
         if (!this.activeTimeEntry.organization_id || !this.activeTimeEntry.start) { // Also check if start exists
@@ -538,10 +539,7 @@ export default class SolidTimePlugin extends Plugin {
         const entryToStop = this.activeTimeEntry!;
         const orgIdForEntry = entryToStop.organization_id;
 
-        // --- Luxon Conversion ---
-        // Generate 'end' time WITHOUT milliseconds
         const end = DateTime.utc().toFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        // --- End Luxon Conversion ---
 
         let correctMemberId: string | null = null;
 
@@ -565,7 +563,7 @@ export default class SolidTimePlugin extends Plugin {
         const payloadToSend = {
             member_id: correctMemberId,
             // start: entryToStop.start, // REMOVED 'start' field
-            end: end,                   // Use FORMATTED end time
+            end: end,
             billable: entryToStop.billable,
             project_id: entryToStop.project_id,
             task_id: entryToStop.task_id,
@@ -573,14 +571,14 @@ export default class SolidTimePlugin extends Plugin {
             tags: entryToStop.tags,
         };
 
-        console.log("SolidTime: Attempting to stop timer:");
-        console.log("Org ID:", orgIdForEntry);
-        console.log("Entry ID:", entryToStop.id);
-        console.log("Payload (NO start field, FORMATTED end):", JSON.stringify(payloadToSend, null, 2));
+        // console.log("SolidTime: Attempting to stop timer:");
+        // console.log("Org ID:", orgIdForEntry);
+        // console.log("Entry ID:", entryToStop.id);
+        // console.log("Payload (NO start field, FORMATTED end):", JSON.stringify(payloadToSend, null, 2));
 
         try {
             new Notice("SolidTime: Stopping timer...");
-            this.activeTimeEntry = null; 
+            this.activeTimeEntry = null;
             this.renderStatusBar();
             this.updateSolidTimeView();
             await this.api!.stopTimeEntry(orgIdForEntry, entryToStop.id, payloadToSend as TimeEntryStopPayload);
@@ -638,12 +636,12 @@ export default class SolidTimePlugin extends Plugin {
 
     showStartTimerModal() {
         if (!this.checkSettingsAndApi()) return;
-         if (this.projects.length === 0 && this.tags.length === 0 && this.tasks.length === 0) {
+        if (this.projects.length === 0 && this.tags.length === 0 && this.tasks.length === 0) {
             console.log("SolidTime: Data might not be loaded yet for modal.");
             new Notice("Fetching SolidTime data... Please try again shortly.");
             this.loadSolidTimeData(); return;
-         }
-		new StartTimerModal(this.app, this).open();
+        }
+        new StartTimerModal(this.app, this).open();
     }
 
 }
