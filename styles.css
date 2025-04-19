@@ -1,142 +1,192 @@
 /* Basic container styling */
 .solidtime-view-container {
-    padding: var(--size-4-3) var(--size-4-4);
-    display: flex;
-    flex-direction: column;
-    gap: var(--size-4-2);
-    /* --- Height Constraint --- */
-    /* Adjust height as needed, or use max-height */
-    height: 130px;
-    /* --- End Height Constraint --- */
-  }
-  
-  /* Description styling */
-  .solidtime-view-description {
-    font-size: var(--font-ui-large);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: var(--size-4-1);
-    cursor: pointer; /* Indicate clickable */
-    padding: 2px 4px; /* Add padding for better click area/look */
-    border-radius: var(--radius-s);
-  }
-  .solidtime-view-description:hover {
-    background-color: var(--background-modifier-hover);
-  }
-  
-  /* Input field for editing description */
-  .solidtime-view-description-input {
-    font-size: var(--font-ui-large);
-    font-weight: 500;
-    width: 100%; /* Take available width */
-    border: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    padding: 2px 4px;
-    border-radius: var(--radius-s);
-    box-sizing: border-box; /* Include padding/border in width */
-  }
-  
-  
-  /* Row for project and icons */
-  .solidtime-view-details-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--size-4-2);
-    min-height: 24px;
-  }
-  
-  /* Project display */
-  .solidtime-view-project {
-    display: flex;
-    align-items: center;
-    gap: var(--size-4-1);
-    font-size: var(--font-ui-small);
-    overflow: hidden;
-    cursor: pointer; /* Indicate clickable */
-    padding: 2px 4px;
-    border-radius: var(--radius-s);
-  }
-  .solidtime-view-project:hover {
-     background-color: var(--background-modifier-hover);
-  }
-  /* Input field for editing project (if needed, though modal is better) */
-  /* ... */
-  
-  
-  .solidtime-view-project-color {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  
-  .solidtime-view-project-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--text-muted);
-  }
-  
-  /* Icons container */
-  .solidtime-view-icons {
-    display: flex;
-    align-items: center;
-    gap: var(--size-4-2);
-    flex-shrink: 0;
-  }
-  
-  .solidtime-view-icon {
-    color: var(--text-faint);
-    cursor: pointer; /* Indicate clickable */
-    padding: 2px; /* Click area */
-  }
-  .solidtime-view-icon:hover {
-      color: var(--text-muted);
-  }
-  
-  /* --- Active Icon Colors --- */
-  .solidtime-view-icon.tag-active,
-  .solidtime-view-icon.billable-active {
-    color: #9abdcf; /* Your specified active color */
-  }
-  .solidtime-view-icon.tag-active:hover,
-  .solidtime-view-icon.billable-active:hover {
-    color: #b0d4e8; /* Slightly lighter on hover */
-  }
-  /* --- End Active Icon Colors --- */
-  
-  
-  /* Row for button and duration */
-  .solidtime-view-controls-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: auto;
-    padding-top: var(--size-4-2);
-  }
-  
-  /* Button styling */
-  .solidtime-view-button-container { }
-  
-  .solidtime-view-button {
-    background-color: transparent;
-    border: none; padding: 0; display: flex;
-    align-items: center; justify-content: center;
-    cursor: pointer; width: 36px; height: 36px;
-    border-radius: 50%;
-  }
-  .solidtime-view-button svg { width: 20px; height: 20px; color: white; }
-  .solidtime-view-button.start { background-color: var(--color-green); }
-  .solidtime-view-button.stop { background-color: var(--color-red); }
-  .solidtime-view-button:hover { opacity: 0.9; }
-  
-  /* Duration styling */
-  .solidtime-view-duration {
-    font-family: var(--font-monospace);
-    font-size: var(--font-ui-large);
-    font-weight: 500; min-width: 70px; text-align: right;
-  }
+  padding: var(--size-4-3) var(--size-4-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  /* --- Height Constraint --- */
+  /* Adjust height as needed, or use max-height */
+  height: 130px;
+  /* --- End Height Constraint --- */
+}
+
+/* Description styling */
+.solidtime-view-description {
+  font-size: var(--font-ui-large);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: var(--size-4-1);
+  cursor: pointer;
+  /* Indicate clickable */
+  padding: 2px 4px;
+  /* Add padding for better click area/look */
+  border-radius: var(--radius-s);
+}
+
+.solidtime-view-description:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+/* Input field for editing description */
+.solidtime-view-description-input {
+  font-size: var(--font-ui-large);
+  font-weight: 500;
+  width: 100%;
+  /* Take available width */
+  border: 1px solid var(--background-modifier-border);
+  background-color: var(--background-primary);
+  padding: 2px 4px;
+  border-radius: var(--radius-s);
+  box-sizing: border-box;
+  /* Include padding/border in width */
+}
+
+
+/* Row for project and icons */
+.solidtime-view-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--size-4-2);
+  min-height: 24px;
+}
+
+/* Project display */
+.solidtime-view-project {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-1);
+  font-size: var(--font-ui-small);
+  overflow: hidden;
+  cursor: pointer;
+  /* Indicate clickable */
+  padding: 2px 4px;
+  border-radius: var(--radius-s);
+}
+
+.solidtime-view-project:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+/* Input field for editing project (if needed, though modal is better) */
+/* ... */
+
+
+.solidtime-view-project-color {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.solidtime-view-project-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+
+/* Icons container */
+.solidtime-view-icons {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  flex-shrink: 0;
+}
+
+.solidtime-view-icon {
+  color: var(--text-faint);
+  cursor: pointer;
+  /* Indicate clickable */
+  padding: 2px;
+  /* Click area */
+}
+
+.solidtime-view-icon:hover {
+  color: var(--text-muted);
+}
+
+/* --- Active Icon Colors --- */
+.solidtime-view-icon.tag-active,
+.solidtime-view-icon.billable-active {
+  color: #9abdcf;
+  /* Your specified active color */
+}
+
+.solidtime-view-icon.tag-active:hover,
+.solidtime-view-icon.billable-active:hover {
+  color: #b0d4e8;
+  /* Slightly lighter on hover */
+}
+
+/* --- End Active Icon Colors --- */
+
+
+/* Row for button and duration */
+.solidtime-view-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: var(--size-4-2);
+}
+
+/* Button styling */
+.solidtime-view-button-container {}
+
+.solidtime-view-button {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.solidtime-view-button svg {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+.solidtime-view-button.start {
+  background-color: var(--color-green);
+}
+
+.solidtime-view-button.stop {
+  background-color: var(--color-red);
+}
+
+.solidtime-view-button:hover {
+  opacity: 0.9;
+}
+
+/* Duration styling */
+.solidtime-view-duration {
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-large);
+  font-weight: 500;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* Status Bar Styling */
+.status-bar-item.solidtime-statusbar {
+  /* Default styling for the status bar item if needed */
+  /* Example: margin-right: var(--size-4-2); */
+}
+
+.status-bar-item.solidtime-statusbar.solidtime-active {
+  /* Style WHEN TIMER IS RUNNING */
+  color: #31d14b;
+  /* Your desired green color */
+  font-weight: 500;
+  /* Example: make it slightly bolder */
+}

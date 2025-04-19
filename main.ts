@@ -437,18 +437,20 @@ export default class SolidTimePlugin extends Plugin {
 
         if (this.activeTimeEntry && this.activeTimeEntry.start) { // Check if start time exists
             // --- Luxon Conversion ---
-            const startDateTime = DateTime.fromISO(this.activeTimeEntry.start); // Luxon parses ISO including Z
+            const startDateTime = DateTime.fromISO(this.activeTimeEntry.start);
             if (!startDateTime.isValid) {
-                console.error("SolidTime: Failed to parse start time:", this.activeTimeEntry.start);
+                console.error("SolidTime: Failed to parse start time for status bar:", this.activeTimeEntry.start);
                 this.statusBarItemEl.setText('SolidTime: Invalid Date');
+                this.statusBarItemEl.removeClass('solidtime-active'); // Ensure inactive class state
+                this.statusBarItemEl.removeAttribute('title');
                 return;
-            }
+             }
             const nowDateTime = DateTime.utc();
             const duration = nowDateTime.diff(startDateTime); // Returns a Luxon Duration
             const formattedDuration = this.formatDuration(duration);
-            // --- End Luxon Conversion ---
 
-            let display = `⏱️ ${formattedDuration}`;
+            let display = `🟢 ${formattedDuration}`;
+            
             const project = this.projects.find(p => p.id === this.activeTimeEntry?.project_id);
             if (project) { display += ` | ${project.name}`; }
             else if (this.activeTimeEntry.project_id) { display += ` | (Project?)`; }
@@ -459,10 +461,10 @@ export default class SolidTimePlugin extends Plugin {
 
             this.statusBarItemEl.setText(display);
             this.statusBarItemEl.addClass('solidtime-active');
+            
             const tooltipProjectName = project?.name || `(ID: ...${this.activeTimeEntry.project_id?.slice(-6) || 'None'})`;
-            // --- Luxon Conversion ---
+            
             const localStartTime = startDateTime.toLocal().toFormat('yyyy-MM-dd HH:mm'); // Luxon format
-            // --- End Luxon Conversion ---
             this.statusBarItemEl.setAttribute('title', `SolidTime Timer\nDescription: ${this.activeTimeEntry.description || '(None)'}\nProject: ${tooltipProjectName}\nStarted: ${localStartTime}`);
 
         } else {
