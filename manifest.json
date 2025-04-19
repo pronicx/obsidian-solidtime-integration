@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-solidtime-integration",
+	"id": "solidtime-integration",
 	"name": "SolidTime Integration",
 	"version": "0.1.0",
 	"minAppVersion": "1.0.0",
-	"description": "Integrates SolidTime time tracking into Obsidian.",
+	"description": "Connect Obsidian with SolidTime to track your work time directly within your vault.",
 	"author": "proniclabs",
 	"authorUrl": "https://github.com/pronicx",
 	"fundingUrl": "https://buymeacoffee.com/proniclabs",
