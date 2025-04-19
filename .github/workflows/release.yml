@@ -3,7 +3,13 @@ name: Create Release
 on:
   push:
     tags:
-      - 'v*' # Matches tags like v1.0, v2.3.4
+      # --- MODIFIED TRIGGER ---
+      # Matches tags like 0.1.0, 1.2.3, 10.20.30, 1.2.3-beta.1 etc.
+      # Avoids triggering on arbitrary tags like 'test' or 'v-something-else'
+      - '[0-9]+.[0-9]+.[0-9]+*' # Loosely matches semver, including pre-releases
+      # You could use a more specific regex if needed, e.g. for only final releases:
+      # - '[0-9]+.[0-9]+.[0-9]+'
+      # --- END MODIFIED TRIGGER ---
 
 # Grant permission to create releases/upload assets
 permissions:
@@ -16,54 +22,47 @@ env:
 jobs:
   build-release:
     name: Build and Release Plugin
-    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the repository code at the specific tag
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js environment
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x' # Specify your Node.js version
-          cache: 'npm' # Cache npm dependencies
+          node-version: '20.x'
+          cache: 'npm'
 
       # 3. Install dependencies
       - name: Install dependencies
-        run: npm ci # Use 'ci' for cleaner installs in CI environments
+        run: npm ci
 
-      # 4. Build the plugin (this generates main.js)
+      # 4. Build plugin
       - name: Build plugin
         run: npm run build
 
-      # --- Prepare Assets ---
-      # We need main.js (built), styles.css, and manifest.json
-
-      # 5. Create ZIP archive
+      # 5. Create ZIP package
       - name: Create ZIP package
-        # Extract version from the tag (e.g., v1.2.3 -> 1.2.3)
         run: |
-          TAG_VERSION=${GITHUB_REF_NAME#v}
+          TAG_VERSION=${GITHUB_REF_NAME}
           echo "TAG_VERSION=${TAG_VERSION}" >> $GITHUB_ENV
           zip ${{ env.PLUGIN_NAME }}-${TAG_VERSION}.zip main.js manifest.json styles.css
-        shell: bash # Use bash for string manipulation
+        shell: bash
 
       # 6. Create GitHub Release and Upload Assets
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          # Use the version extracted from the tag for the release name/tag
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ env.TAG_VERSION }}
-          # Body can be empty, manually edited later, or generated from changelog (advanced)
-          # Mark as pre-release if tag contains 'beta', 'alpha', etc. (optional)
+          tag_name: ${{ github.ref_name }} # Use the triggering tag (e.g., 0.1.3)
+          name: Release ${{ env.TAG_VERSION }} # Use the extracted version (e.g., 0.1.3)
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
-          files: | # List files to upload as assets
+          files: |
             main.js
             manifest.json
             styles.css
             ${{ env.PLUGIN_NAME }}-${{ env.TAG_VERSION }}.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required for the action to interact with GitHub API
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
