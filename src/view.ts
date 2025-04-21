@@ -1,7 +1,7 @@
-import { ItemView, WorkspaceLeaf, setIcon } from 'obsidian';
+import { ItemView, WorkspaceLeaf, setIcon, Notice } from 'obsidian';
 import { DateTime, Duration } from 'luxon'; // Import Luxon
 import SolidTimePlugin from '../main';
-import { ProjectResource } from './types';
+import { ProjectResource, TagResource } from './types';
 import { ProjectSuggestModal, TagSelectionModal } from './modals';
 
 export const SOLIDTIME_VIEW_TYPE = 'solidtime-timer-view';
@@ -19,6 +19,10 @@ export class SolidTimeView extends ItemView {
     private billableIconEl: HTMLElement | null = null;
     private durationEl: HTMLElement | null = null;
     private playStopButtonEl: HTMLElement | null = null; // Keep ref for button state
+
+    // states for idle configuration
+    private pendingDescription: string | null = null;
+    private pendingProject: ProjectResource | null = null;
 
 
     constructor(leaf: WorkspaceLeaf, plugin: SolidTimePlugin) {
@@ -60,170 +64,184 @@ export class SolidTimeView extends ItemView {
         // Clean up any other resources or listeners if needed
     }
 
-    // Main function to build/update the view content
-    renderViewContent(containerEl: HTMLElement) {
-        containerEl.empty(); // Clear previous content
+// Main function to build/update the view content
+renderViewContent(containerEl: HTMLElement) {
+    containerEl.empty(); // Clear previous content
 
-        const timerRunning = !!this.plugin.activeTimeEntry;
-        const entry = this.plugin.activeTimeEntry;
+    const timerRunning = !!this.plugin.activeTimeEntry;
+    const entry = this.plugin.activeTimeEntry;
 
-        // --- Description (Now Editable) ---
-        this.descriptionEl = containerEl.createEl('div', {
-            text: entry?.description || (timerRunning ? '(No description)' : 'SolidTime Idle'),
-            cls: 'solidtime-view-description'
-        });
-        this.descriptionEl.setAttribute('title', entry?.description || 'Click to edit');
+    // --- Description (Editable in both states (active / idle)) ---
+    const currentDesc = timerRunning ? entry?.description : this.pendingDescription;
+    this.descriptionEl = containerEl.createEl('div', {
+        // Show pending description or placeholder when idle
+        text: currentDesc || (timerRunning ? '(No description)' : '(Click to set description)'), // Correct idle placeholder
+        cls: 'solidtime-view-description'
+    });
+    this.descriptionEl.setAttribute('title', currentDesc || 'Click to edit/set description');
 
-        // Add click listener for editing
-        this.descriptionEl.onclick = () => {
-            if (!this.plugin.activeTimeEntry) return; // Only edit running timers
-            this.editDescription();
-        };
+    // --- FIX: REMOVE DUPLICATE ONCLICK ---
+    // Assign onclick handler ONCE - the check happens inside editDescription
+    this.descriptionEl.onclick = () => {
+         this.editDescription();
+    };
+    // --- END FIX ---
 
-        // --- Row for Project / Icons ---
-        const detailsRow = containerEl.createEl('div', { cls: 'solidtime-view-details-row' });
+    // --- Row for Project / Icons ---
+    const detailsRow = containerEl.createEl('div', { cls: 'solidtime-view-details-row' });
 
-        // Project
-        this.projectEl = detailsRow.createEl('div', { cls: 'solidtime-view-project' });
-        this.projectColorEl = this.projectEl.createEl('span', { cls: 'solidtime-view-project-color' });
-        this.projectNameEl = this.projectEl.createEl('span', { cls: 'solidtime-view-project-name' }); // Store ref
+    // Project (Editable in both states)
+    this.projectEl = detailsRow.createEl('div', { cls: 'solidtime-view-project' });
+    this.projectColorEl = this.projectEl.createEl('span', { cls: 'solidtime-view-project-color' });
+    this.projectNameEl = this.projectEl.createEl('span', { cls: 'solidtime-view-project-name' });
 
-        let project: ProjectResource | undefined | null = null;
+    // Determine which project to display (active or pending)
+    const displayProject = timerRunning ? (entry?.project_id ? this.plugin.projects.find(p => p.id === entry.project_id) : null) : this.pendingProject;
+    const displayProjectId = timerRunning ? entry?.project_id : this.pendingProject?.id;
 
-        const projectId = entry?.project_id; // Get project ID safely
-
-        if (projectId) {
-            // Attempt to find the project only if an ID exists
-            project = this.plugin.projects.find(p => p.id === projectId);
-        }
-
-        if (project?.color) {
-            this.projectColorEl.style.backgroundColor = project.color;
-            this.projectColorEl.removeClass('no-project-color');
-            this.projectColorEl.style.removeProperty('border-color');
-        } else {
-            this.projectColorEl.style.removeProperty('background-color');
-            this.projectColorEl.addClass('no-project-color');
-        }
-
-        // Set project name text based on whether the project object was found OR if just the ID exists
-        if (project) {
-            // Project object found in cache
-            this.projectNameEl.setText(project.name);
-        } else if (projectId) {
-            // Project ID exists, but project object not found (e.g., not cached yet)
-            this.projectNameEl.setText(`(ID: ...${projectId.slice(-4)})`); // Show truncated ID
-        } else {
-            // No project ID associated with the entry
-            this.projectNameEl.setText('(No Project)');
-        }
-        
-        // Add click listener for project selection
-        this.projectEl.onclick = () => {
-            if (!this.plugin.activeTimeEntry) return; // Only edit running timers
-            this.selectProject();
-        };
-
-        // Icons (Tag and Billable - Now Clickable)
-        const iconsContainer = detailsRow.createEl('div', { cls: 'solidtime-view-icons' });
-        this.tagIconEl = iconsContainer.createEl('span', { cls: 'solidtime-view-icon' });
-        setIcon(this.tagIconEl, 'tag');
-        const hasTags = !!(entry?.tags && entry.tags.length > 0);
-        this.tagIconEl.toggleClass('tag-active', hasTags); // Use specific class for color
-        this.tagIconEl.setAttribute('title', `Tags: ${entry?.tags?.length || 0}. Click to edit.`);
-        // Add click listener for tags
-        this.tagIconEl.onclick = () => {
-            if (!this.plugin.activeTimeEntry) return;
-            this.selectTags();
-        };
-
-        this.billableIconEl = iconsContainer.createEl('span', { cls: 'solidtime-view-icon' });
-        setIcon(this.billableIconEl, 'dollar-sign');
-        const isBillable = !!entry?.billable;
-        this.billableIconEl.toggleClass('billable-active', isBillable); // Use specific class for color
-        this.billableIconEl.setAttribute('title', `Billable: ${isBillable ? 'Yes' : 'No'}. Click to toggle.`);
-        // Add click listener for billable toggle
-        this.billableIconEl.onclick = () => {
-            if (!this.plugin.activeTimeEntry) return;
-            // Toggle the state and update
-            this.plugin.updateActiveTimerDetails({ billable: !isBillable });
-        };
-
-
-
-        // --- Row for Button / Duration ---
-        const controlsRow = containerEl.createEl('div', { cls: 'solidtime-view-controls-row' });
-
-        // Play/Stop Button
-        this.playStopButtonEl = controlsRow.createEl('div', { cls: 'solidtime-view-button-container' });
-        const button = this.playStopButtonEl.createEl('button', { cls: 'solidtime-view-button' });
-        this.durationEl = controlsRow.createEl('div', { text: timerRunning ? '00:00:00' : '--:--:--', cls: 'solidtime-view-duration' });
-
-        if (timerRunning && entry?.start) {
-            setIcon(button, 'square'); button.addClass('stop'); button.setAttribute('aria-label', 'Stop Timer');
-            button.onclick = () => { this.plugin.stopCurrentTimer(); };
-            this.updateDuration(); this.startDurationInterval();
-        } else {
-            setIcon(button, 'play'); button.addClass('start'); button.setAttribute('aria-label', 'Start Timer');
-            button.onclick = () => { this.plugin.showStartTimerModal(); };
-            this.clearDurationInterval();
-        }
+    // Apply color/text based on displayProject (using CSS classes)
+    if (displayProject?.color) {
+        this.projectColorEl.style.backgroundColor = displayProject.color;
+        this.projectColorEl.removeClass('no-project-color');
+        this.projectColorEl.style.removeProperty('border-color');
+    } else {
+        this.projectColorEl.style.removeProperty('background-color');
+        this.projectColorEl.addClass('no-project-color');
     }
+    // Set project name text based on whether the project object was found OR if just the ID exists
+    if (displayProject) { this.projectNameEl.setText(displayProject.name); }
+    else if (displayProjectId) { this.projectNameEl.setText(`(ID: ...${displayProjectId.slice(-4)})`); }
+    else { this.projectNameEl.setText('(Click to select Project)'); }
+
+    // Allow selecting always
+    this.projectEl.onclick = () => { this.selectProject(); };
+
+
+    // Icons (Tag and Billable - Only interactive when running)
+    const iconsContainer = detailsRow.createEl('div', { cls: 'solidtime-view-icons' });
+    // Tag Icon
+    this.tagIconEl = iconsContainer.createEl('span', { cls: 'solidtime-view-icon' });
+    setIcon(this.tagIconEl, 'tag');
+    const hasTags = timerRunning && !!(entry?.tags && entry.tags.length > 0);
+    this.tagIconEl.toggleClass('tag-active', hasTags);
+    this.tagIconEl.setAttribute('title', `Tags: ${timerRunning ? (entry?.tags?.length || 0) : 'N/A'}${timerRunning ? '. Click to edit.' : ''}`);
+    this.tagIconEl.onclick = () => { if (!timerRunning) return; this.selectTags(); };
+    this.tagIconEl.style.cursor = timerRunning ? 'pointer' : 'default';
+
+    // Billable Icon
+    this.billableIconEl = iconsContainer.createEl('span', { cls: 'solidtime-view-icon' });
+    setIcon(this.billableIconEl, 'dollar-sign');
+    const isBillable = timerRunning && !!entry?.billable;
+    this.billableIconEl.toggleClass('billable-active', isBillable);
+    this.billableIconEl.setAttribute('title', `Billable: ${timerRunning ? (isBillable ? 'Yes' : 'No') : 'N/A'}${timerRunning ? '. Click to toggle.' : ''}`);
+    this.billableIconEl.onclick = () => { if (!timerRunning) return; this.plugin.updateActiveTimerDetails({ billable: !isBillable }); };
+    this.billableIconEl.style.cursor = timerRunning ? 'pointer' : 'default';
+
+    // --- Row for Button / Duration ---
+    const controlsRow = containerEl.createEl('div', { cls: 'solidtime-view-controls-row' });
+    this.playStopButtonEl = controlsRow.createEl('div', { cls: 'solidtime-view-button-container' });
+    const button = this.playStopButtonEl.createEl('button', { cls: 'solidtime-view-button' });
+    this.durationEl = controlsRow.createEl('div', { text: timerRunning ? '00:00:00' : '--:--:--', cls: 'solidtime-view-duration' });
+
+    if (timerRunning && entry?.start) {
+        // --- Running State ---
+        setIcon(button, 'square'); button.addClass('stop'); button.setAttribute('aria-label', 'Stop Timer');
+        button.onclick = () => { this.plugin.stopCurrentTimer(); };
+        this.updateDuration(); this.startDurationInterval();
+    } else {
+        // --- Idle State ---
+        setIcon(button, 'play'); button.addClass('start'); button.setAttribute('aria-label', 'Start Timer with current details');
+        button.onclick = () => {
+            // --- FIX: CHECK FOR DESCRIPTION BEFORE STARTING ---
+            if (!this.pendingDescription) {
+                new Notice("Please enter a description before starting the timer.");
+                // Optionally focus the description input here if desired
+                if (this.descriptionEl) this.editDescription(); // Try to trigger edit mode
+                return; // Stop execution
+            }
+            // --- END FIX ---
+
+            // Start timer using pending details from the view's state
+            this.plugin.startTimer({
+                description: this.pendingDescription, // Now guaranteed to be non-null
+                projectId: this.pendingProject?.id || null,
+                taskId: null,
+                tagIds: [],
+                billable: this.plugin.settings.defaultBillable
+            });
+            // Clear pending state after starting
+            this.pendingDescription = null;
+            this.pendingProject = null;
+            // View will refresh automatically via startTimer -> updateStatus -> updateView
+        };
+        this.clearDurationInterval();
+    }
+}
 
     editDescription() {
-        if (!this.descriptionEl || !this.plugin.activeTimeEntry) return;
-
-        const currentDescription = this.plugin.activeTimeEntry.description || '';
-        const input = createEl('input', {
-            type: 'text',
-            value: currentDescription,
-            cls: 'solidtime-view-description-input' // Use new CSS class
-        });
-
-        // Replace div with input
+        const timerRunning = !!this.plugin.activeTimeEntry;
+        if (!this.descriptionEl) return;
+        const currentDescription = (timerRunning ? this.plugin.activeTimeEntry?.description : this.pendingDescription) || '';
+        const input = createEl('input', { type: 'text', value: currentDescription, cls: 'solidtime-view-description-input' });
+        
         this.descriptionEl.replaceWith(input);
         input.focus();
         input.select();
 
-        // Save on blur or Enter
+
         const save = () => {
-            const newDescription = input.value.trim() || null; // Send null if empty
-            // Only update if changed
+            const newDescription = input.value.trim() || null;
             if (newDescription !== currentDescription) {
-                this.plugin.updateActiveTimerDetails({ description: newDescription });
+                if (timerRunning) {
+                    this.plugin.updateActiveTimerDetails({ description: newDescription });
+                } else {
+                    this.pendingDescription = newDescription;
+                    // Need to replace input back with the div after updating pending state
+                    input.replaceWith(this.descriptionEl!);
+                    this.descriptionEl!.setText(this.pendingDescription || '(Click to set description)');
+                    this.descriptionEl!.setAttribute('title', this.pendingDescription || 'Click to edit/set description');
+                }
             } else {
-                // If no change, just restore the original display element
-                // Note: updateActiveTimerDetails will eventually call updateView,
-                // but we restore immediately for better UX if no API call needed.
                 input.replaceWith(this.descriptionEl!);
-                this.descriptionEl!.setText(currentDescription || '(No description)'); // Restore text
+                this.descriptionEl!.setText(currentDescription || (timerRunning ? '(No description)' : '(Click to set description)'));
+                this.descriptionEl!.setAttribute('title', currentDescription || 'Click to edit/set description');
             }
         };
 
         input.addEventListener('blur', save);
         input.addEventListener('keydown', (evt) => {
-            if (evt.key === 'Enter') {
-                input.blur(); // Trigger save via blur
-            } else if (evt.key === 'Escape') {
-                // Restore original without saving
-                input.replaceWith(this.descriptionEl!);
-                this.descriptionEl!.setText(currentDescription || '(No description)');
+            if (evt.key === 'Enter') { input.blur(); }
+            else if (evt.key === 'Escape') {
+                input.replaceWith(this.descriptionEl!); // Restore without saving
+                this.descriptionEl!.setText(currentDescription || (timerRunning ? '(No description)' : '(Click to set description)'));
+                this.descriptionEl!.setAttribute('title', currentDescription || 'Click to edit/set description');
             }
         });
     }
 
     selectProject() {
-        if (!this.plugin.activeTimeEntry) return; // Should not happen if called correctly
-
+        const timerRunning = !!this.plugin.activeTimeEntry;
         new ProjectSuggestModal(this.app, this.plugin.projects, (selectedProject) => {
-            // Check if project actually changed
-            const currentProjectId = this.plugin.activeTimeEntry?.project_id || null;
+            const currentProjectId = (timerRunning ? this.plugin.activeTimeEntry?.project_id : this.pendingProject?.id) || null;
             const newProjectId = selectedProject?.id || null;
 
             if (currentProjectId !== newProjectId) {
-                // console.log("Changing project to:", selectedProject?.name || "None");
-                this.plugin.updateActiveTimerDetails({ projectId: newProjectId });
-                // Note: The view will fully re-render after the update completes
+                if (timerRunning) {
+                    // Update running timer via API
+                    this.plugin.updateActiveTimerDetails({ projectId: newProjectId });
+                } else {
+                    // Update pending state in the view
+                    this.pendingProject = selectedProject;
+                    // Manually update display elements for pending state
+                    this.projectNameEl?.setText(selectedProject?.name || '(Click to select Project)');
+                    if (selectedProject?.color) {
+                        this.projectColorEl?.removeClass('no-project-color');
+                        this.projectColorEl!.style.backgroundColor = selectedProject.color;
+                    } else {
+                        this.projectColorEl?.addClass('no-project-color');
+                        this.projectColorEl?.style.removeProperty('background-color');
+                    }
+                }
             }
         }).open();
     }

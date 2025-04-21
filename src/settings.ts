@@ -1,9 +1,7 @@
-// src/settings.ts (Make sure this is the code in your settings file)
-
-import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
-import SolidTimePlugin from '../main'; // Adjust path if needed
-import { SolidTimeApi } from './api'; // Adjust path if needed
-import { PersonalMembershipResource, MemberResource } from './types'; // Adjust path if needed
+import { App, PluginSettingTab, Setting, Notice} from 'obsidian';
+import SolidTimePlugin from '../main';
+import { SolidTimeApi } from './api';
+import { PersonalMembershipResource } from './types';
 
 export interface SolidTimeSettings {
     apiKey: string;
@@ -48,40 +46,59 @@ export class SolidTimeSettingTab extends PluginSettingTab {
         if (!Array.isArray(this.memberships)) { this.memberships = []; }
     }
 
+    async handleSettingsSaveAndRefresh() {
+        await this.plugin.saveSettings();
+        // We need to re-fetch memberships as API key/URL might have changed
+        await this.fetchMemberships();
+        // We need to re-render the display to update the organization dropdown
+        this.display();
+    }
+
     async display(): Promise<void> {
         const { containerEl } = this;
         containerEl.empty();
 
-        // Fetch memberships *before* rendering settings that depend on them
-        await this.fetchMemberships();
+        if (this.plugin.settings.apiKey && this.plugin.settings.apiBaseUrl) {
+            await this.fetchMemberships();
+        }
+
+		new Setting(containerEl)
+			.setName('SolidTime API Key')
+			.setDesc('Generate an API Token from your SolidTime profile.')
+			.addText(text => { // Get reference to the input component
+                text.setPlaceholder('Enter your API Key')
+                    .setValue(this.plugin.settings.apiKey)
+                    .onChange((value) => {
+                        // Update setting immediately for responsiveness
+                        this.plugin.settings.apiKey = value.trim();
+                        // DO NOT save/refresh here
+                    });
+
+                text.inputEl.addEventListener('blur', async () => {
+                    console.log("API Key blurred, saving settings and refreshing...");
+                    await this.handleSettingsSaveAndRefresh();
+                });
+               
+            });
 
         new Setting(containerEl)
-            .setName('SolidTime API Key')
-            .setDesc('Generate an API Token from your SolidTime profile.')
-            .addText(text => text
-                .setPlaceholder('Enter your API Key')
-                .setValue(this.plugin.settings.apiKey) // Use apiKey
-                .onChange(async (value) => {
-                    this.plugin.settings.apiKey = value.trim(); // Use apiKey
-                    await this.plugin.saveSettings();
-                    // Re-fetch memberships when API key changes AFTER saving
-                    await this.fetchMemberships();
-                    this.display(); // Refresh display to update organization dropdown
-                }));
+			.setName('SolidTime API Base URL')
+			.setDesc('The base URL for the SolidTime API.')
+			.addText(text => { // Get reference to the input component
+                text.setPlaceholder('e.g., https://app.solidtime.io/api')
+                    .setValue(this.plugin.settings.apiBaseUrl)
+                    .onChange((value) => {
+                        // Update setting immediately
+                        this.plugin.settings.apiBaseUrl = value.trim().replace(/\/$/, '');
+                        // DO NOT save/refresh here
+                    });
 
-        new Setting(containerEl)
-            .setName('SolidTime API Base URL')
-            .setDesc('The base URL for the SolidTime API.')
-            .addText(text => text
-                .setPlaceholder('e.g., https://app.solidtime.io/api')
-                .setValue(this.plugin.settings.apiBaseUrl) // Use apiBaseUrl
-                .onChange(async (value) => {
-                    this.plugin.settings.apiBaseUrl = value.trim().replace(/\/$/, ''); // Use apiBaseUrl
-                    await this.plugin.saveSettings();
-                    // Re-fetch memberships when URL changes AFTER saving
-                    await this.fetchMemberships();
-                    this.display(); // Refresh display
-                }));
+                 text.inputEl.addEventListener('blur', async () => {
+                    console.log("Base URL blurred, saving settings and refreshing...");
+                    await this.handleSettingsSaveAndRefresh();
+                });
+                
+            });
 
         const orgSetting = new Setting(containerEl)
             .setName('Active Organization')
