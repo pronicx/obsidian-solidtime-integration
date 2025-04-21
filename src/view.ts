@@ -9,6 +9,7 @@ export const SOLIDTIME_VIEW_TYPE = 'solidtime-timer-view';
 export class SolidTimeView extends ItemView {
     plugin: SolidTimePlugin;
     private durationIntervalId: number | null = null;
+    private isEditing: boolean = false;
 
     // Elements
     private descriptionEl: HTMLElement | null = null;
@@ -47,6 +48,7 @@ export class SolidTimeView extends ItemView {
 
     async onOpen() {
         // console.log("SolidTime View: Opened");
+        this.isEditing = false;
         const container = this.containerEl.children[1]; // View content container
         container.empty();
         container.addClass('solidtime-view-container');
@@ -62,10 +64,16 @@ export class SolidTimeView extends ItemView {
         // console.log("SolidTime View: Closed");
         this.clearDurationInterval();
         // Clean up any other resources or listeners if needed
+        this.isEditing = false;
     }
 
 // Main function to build/update the view content
 renderViewContent(containerEl: HTMLElement) {
+    if (this.isEditing) {
+        // console.log("Skipping renderViewContent because editing is in progress."); // Optional debug log
+        return; // Exit early, don't redraw while input is active
+    }
+
     containerEl.empty(); // Clear previous content
 
     const timerRunning = !!this.plugin.activeTimeEntry;
@@ -179,42 +187,70 @@ renderViewContent(containerEl: HTMLElement) {
 }
 
     editDescription() {
+
+        if (this.isEditing) return; // Prevent starting another edit if already editing
+        this.isEditing = true;
+
         const timerRunning = !!this.plugin.activeTimeEntry;
-        if (!this.descriptionEl) return;
+        if (!this.descriptionEl) { this.isEditing = false; return; }
+
         const currentDescription = (timerRunning ? this.plugin.activeTimeEntry?.description : this.pendingDescription) || '';
         const input = createEl('input', { type: 'text', value: currentDescription, cls: 'solidtime-view-description-input' });
-        
+
         this.descriptionEl.replaceWith(input);
         input.focus();
         input.select();
 
 
-        const save = () => {
-            const newDescription = input.value.trim() || null;
-            if (newDescription !== currentDescription) {
+        const finishEdit = (saveChanges: boolean) => {
+            // --- Reset Editing Flag ---
+            this.isEditing = false;
+            // --- End Reset Flag ---
+
+            let newDescription: string | null = currentDescription; // Correctly typed here now
+
+            if (saveChanges) {
+                newDescription = input.value.trim() || null;
+            }
+
+            // Restore the description div first, regardless of save outcome
+            // Check if input is still in the DOM (might have been removed by rapid events)
+            if (input.parentNode) {
+                input.replaceWith(this.descriptionEl!);
+            } else if (!this.descriptionEl?.parentNode) {
+                 // If both are gone (e.g., view closed during edit), try to re-append descriptionEl
+                 // This might be complex, better to just let the next render handle it if view still exists
+                 console.warn("Input and description div detached during edit finish.");
+                 // Attempt to force a re-render might be needed if the view content is now empty
+                 this.plugin.updateSolidTimeView(); // Trigger a full redraw AFTER resetting the flag
+                 return; // Avoid further processing on detached node
+            }
+
+
+            // Update text content based on final description
+            const finalText = newDescription || (timerRunning ? '(No description)' : '(Click to set description)');
+            this.descriptionEl!.setText(finalText);
+            this.descriptionEl!.setAttribute('title', newDescription || 'Click to edit/set description');
+
+            // Perform API update or pending state update ONLY if saving changes
+            if (saveChanges && newDescription !== currentDescription) {
                 if (timerRunning) {
                     this.plugin.updateActiveTimerDetails({ description: newDescription });
+                    // No need to manually update text here again, updateActiveTimerDetails -> updateStatus -> updateView will handle it
                 } else {
                     this.pendingDescription = newDescription;
-                    // Need to replace input back with the div after updating pending state
-                    input.replaceWith(this.descriptionEl!);
-                    this.descriptionEl!.setText(this.pendingDescription || '(Click to set description)');
-                    this.descriptionEl!.setAttribute('title', this.pendingDescription || 'Click to edit/set description');
+                    // Text already updated above
                 }
-            } else {
-                input.replaceWith(this.descriptionEl!);
-                this.descriptionEl!.setText(currentDescription || (timerRunning ? '(No description)' : '(Click to set description)'));
-                this.descriptionEl!.setAttribute('title', currentDescription || 'Click to edit/set description');
             }
         };
 
-        input.addEventListener('blur', save);
+        input.addEventListener('blur', () => finishEdit(true)); // Save on blur
         input.addEventListener('keydown', (evt) => {
-            if (evt.key === 'Enter') { input.blur(); }
-            else if (evt.key === 'Escape') {
-                input.replaceWith(this.descriptionEl!); // Restore without saving
-                this.descriptionEl!.setText(currentDescription || (timerRunning ? '(No description)' : '(Click to set description)'));
-                this.descriptionEl!.setAttribute('title', currentDescription || 'Click to edit/set description');
+            if (evt.key === 'Enter') {
+                finishEdit(true); // Save on Enter
+                evt.preventDefault(); // Prevent potential form submission if wrapped
+            } else if (evt.key === 'Escape') {
+                finishEdit(false); // Restore original on Escape
             }
         });
     }
