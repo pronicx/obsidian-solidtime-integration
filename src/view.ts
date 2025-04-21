@@ -89,21 +89,39 @@ export class SolidTimeView extends ItemView {
         this.projectNameEl = this.projectEl.createEl('span', { cls: 'solidtime-view-project-name' }); // Store ref
 
         let project: ProjectResource | undefined | null = null;
-        if (entry?.project_id) {
-            project = this.plugin.projects.find(p => p.id === entry.project_id);
-            this.projectNameEl.setText(project?.name || `(Project ID: ...${entry.project_id.slice(-4)})`);
-            this.projectColorEl.style.backgroundColor = project?.color || 'var(--text-muted)';
-            this.projectEl.style.display = '';
-        } else {
-            this.projectNameEl.setText('(No Project)'); // Show placeholder if no project
-            this.projectColorEl.style.backgroundColor = 'transparent';
-            // Keep the element visible to allow clicking to add a project
-            // this.projectEl.style.display = 'none'; // Don't hide
+
+        const projectId = entry?.project_id; // Get project ID safely
+
+        if (projectId) {
+            // Attempt to find the project only if an ID exists
+            project = this.plugin.projects.find(p => p.id === projectId);
         }
+
+        if (project?.color) {
+            this.projectColorEl.style.backgroundColor = project.color;
+            this.projectColorEl.removeClass('no-project-color');
+            this.projectColorEl.style.removeProperty('border-color');
+        } else {
+            this.projectColorEl.style.removeProperty('background-color');
+            this.projectColorEl.addClass('no-project-color');
+        }
+
+        // Set project name text based on whether the project object was found OR if just the ID exists
+        if (project) {
+            // Project object found in cache
+            this.projectNameEl.setText(project.name);
+        } else if (projectId) {
+            // Project ID exists, but project object not found (e.g., not cached yet)
+            this.projectNameEl.setText(`(ID: ...${projectId.slice(-4)})`); // Show truncated ID
+        } else {
+            // No project ID associated with the entry
+            this.projectNameEl.setText('(No Project)');
+        }
+        
         // Add click listener for project selection
         this.projectEl.onclick = () => {
-             if (!this.plugin.activeTimeEntry) return; // Only edit running timers
-             this.selectProject();
+            if (!this.plugin.activeTimeEntry) return; // Only edit running timers
+            this.selectProject();
         };
 
         // Icons (Tag and Billable - Now Clickable)
@@ -124,7 +142,7 @@ export class SolidTimeView extends ItemView {
         const isBillable = !!entry?.billable;
         this.billableIconEl.toggleClass('billable-active', isBillable); // Use specific class for color
         this.billableIconEl.setAttribute('title', `Billable: ${isBillable ? 'Yes' : 'No'}. Click to toggle.`);
-         // Add click listener for billable toggle
+        // Add click listener for billable toggle
         this.billableIconEl.onclick = () => {
             if (!this.plugin.activeTimeEntry) return;
             // Toggle the state and update
@@ -174,9 +192,9 @@ export class SolidTimeView extends ItemView {
             if (newDescription !== currentDescription) {
                 this.plugin.updateActiveTimerDetails({ description: newDescription });
             } else {
-                 // If no change, just restore the original display element
-                 // Note: updateActiveTimerDetails will eventually call updateView,
-                 // but we restore immediately for better UX if no API call needed.
+                // If no change, just restore the original display element
+                // Note: updateActiveTimerDetails will eventually call updateView,
+                // but we restore immediately for better UX if no API call needed.
                 input.replaceWith(this.descriptionEl!);
                 this.descriptionEl!.setText(currentDescription || '(No description)'); // Restore text
             }
@@ -187,9 +205,9 @@ export class SolidTimeView extends ItemView {
             if (evt.key === 'Enter') {
                 input.blur(); // Trigger save via blur
             } else if (evt.key === 'Escape') {
-                 // Restore original without saving
-                 input.replaceWith(this.descriptionEl!);
-                 this.descriptionEl!.setText(currentDescription || '(No description)');
+                // Restore original without saving
+                input.replaceWith(this.descriptionEl!);
+                this.descriptionEl!.setText(currentDescription || '(No description)');
             }
         });
     }
@@ -198,20 +216,20 @@ export class SolidTimeView extends ItemView {
         if (!this.plugin.activeTimeEntry) return; // Should not happen if called correctly
 
         new ProjectSuggestModal(this.app, this.plugin.projects, (selectedProject) => {
-             // Check if project actually changed
-             const currentProjectId = this.plugin.activeTimeEntry?.project_id || null;
-             const newProjectId = selectedProject?.id || null;
+            // Check if project actually changed
+            const currentProjectId = this.plugin.activeTimeEntry?.project_id || null;
+            const newProjectId = selectedProject?.id || null;
 
-             if (currentProjectId !== newProjectId) {
+            if (currentProjectId !== newProjectId) {
                 // console.log("Changing project to:", selectedProject?.name || "None");
-                 this.plugin.updateActiveTimerDetails({ projectId: newProjectId });
-                 // Note: The view will fully re-render after the update completes
-             }
+                this.plugin.updateActiveTimerDetails({ projectId: newProjectId });
+                // Note: The view will fully re-render after the update completes
+            }
         }).open();
     }
 
-     // --- Select Tags Logic ---
-     selectTags() {
+    // --- Select Tags Logic ---
+    selectTags() {
         if (!this.plugin.activeTimeEntry) return;
 
         const currentTagIds = this.plugin.activeTimeEntry.tags || [];
@@ -219,11 +237,11 @@ export class SolidTimeView extends ItemView {
         new TagSelectionModal(this.app, this.plugin, currentTagIds, (newSelectedIds) => {
             // Check if selection actually changed (simple length check or deep compare)
             const changed = currentTagIds.length !== newSelectedIds.length ||
-                           !currentTagIds.every(id => newSelectedIds.includes(id));
+                !currentTagIds.every(id => newSelectedIds.includes(id));
 
             if (changed) {
                 // console.log("Updating tags to:", newSelectedIds);
-                 this.plugin.updateActiveTimerDetails({ tagIds: newSelectedIds });
+                this.plugin.updateActiveTimerDetails({ tagIds: newSelectedIds });
             } else {
                 // console.log("Tag selection unchanged.");
             }
@@ -269,7 +287,7 @@ export class SolidTimeView extends ItemView {
     // Method called by the plugin to trigger a full refresh
     updateView() {
         // console.log("SolidTime View: Updating view...");
-        if(this.containerEl.children[1]) {
+        if (this.containerEl.children[1]) {
             this.renderViewContent(this.containerEl.children[1] as HTMLElement);
         }
     }
