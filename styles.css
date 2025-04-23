@@ -207,3 +207,47 @@
   background-color: transparent;
   border-color: var(--text-faint); /* Example: Show a faint border instead */
 }
+
+.solidtime-view-project-color {
+  /* ... existing styles ... */
+  /* Use the CSS variable if set, otherwise default */
+  background-color: var(--project-color, var(--text-faint)); /* Default faint color if variable not set */
+  /* border: 1px solid transparent; // Keep or remove based on preference */
+}
+
+.solidtime-view-project-color.no-project-color {
+  /* This class might become less necessary if using the variable default */
+  background-color: transparent;
+  border-color: var(--text-faint);
+}
+
+
+.solidtime-view-icon {
+  color: var(--text-faint);
+  /* Default cursor - non-interactive */
+  cursor: default;
+  padding: 2px;
+}
+/* --- FIX: Use class for interactive cursor --- */
+.solidtime-view-icon.is-interactive {
+  cursor: pointer; /* Set cursor only when interactive */
+}
+/* --- END FIX --- */
+.solidtime-view-icon:hover { /* Keep general hover */
+    color: var(--text-muted);
+}
+
+/* Use is-interactive for hover effect only on clickable icons */
+.solidtime-view-icon.is-interactive:hover {
+    /* Optional: Slightly different hover for interactive icons if needed */
+    color: var(--text-accent-hover);
+}
+
+.solidtime-view-icon.tag-active,
+.solidtime-view-icon.billable-active {
+  color: #9abdcf;
+}
+.solidtime-view-icon.tag-active.is-interactive:hover, /* Apply hover color only if interactive */
+.solidtime-view-icon.billable-active.is-interactive:hover {
+  color: #b0d4e8;
+}
