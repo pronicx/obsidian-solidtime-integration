@@ -70,18 +70,6 @@
   background-color: var(--background-modifier-hover);
 }
 
-/* Input field for editing project (if needed, though modal is better) */
-/* ... */
-
-
-.solidtime-view-project-color {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .solidtime-view-project-name {
   white-space: nowrap;
   overflow: hidden;
@@ -197,30 +185,17 @@
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  background-color: var(--text-faint); /* Default faint color if no style set */
-  border: 1px solid transparent; /* Add border for structure if needed */
+  /* Default appearance when no data-project-color is set */
+  background-color: transparent;
+  border: 1px solid var(--text-faint);
   box-sizing: border-box;
 }
 
-/* Style when no project/color is set */
-.solidtime-view-project-color.no-project-color {
-  background-color: transparent;
-  border-color: var(--text-faint); /* Example: Show a faint border instead */
+/* Apply background color based on the data attribute */
+.solidtime-view-project-color[data-project-color] {
+  background-color: attr(data-project-color color); /* Use the value of the attribute */
+  border-color: transparent; /* Hide border when color is set */
 }
-
-.solidtime-view-project-color {
-  /* ... existing styles ... */
-  /* Use the CSS variable if set, otherwise default */
-  background-color: var(--project-color, var(--text-faint)); /* Default faint color if variable not set */
-  /* border: 1px solid transparent; // Keep or remove based on preference */
-}
-
-.solidtime-view-project-color.no-project-color {
-  /* This class might become less necessary if using the variable default */
-  background-color: transparent;
-  border-color: var(--text-faint);
-}
-
 
 .solidtime-view-icon {
   color: var(--text-faint);
