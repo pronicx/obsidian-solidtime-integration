@@ -185,15 +185,24 @@
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  /* Default appearance when no data-project-color is set */
+
+  /* --- Using CSS Variable --- */
+  /* Default appearance: transparent background, faint border */
+  /* These will apply if --project-color is NOT set */
   background-color: transparent;
   border: 1px solid var(--text-faint);
   box-sizing: border-box;
+
+  /* Apply the variable when set - this will override the defaults above */
+  /* We set border to none here to hide it when a color is present */
+  background-color: var(--project-color);
+  border: none; /* Hide border when color variable is set */
+  /* --- End Using CSS Variable --- */
 }
 
 /* Apply background color based on the data attribute */
 .solidtime-view-project-color[data-project-color] {
-  background-color: attr(data-project-color color); /* Use the value of the attribute */
+  background-color: attr(data-project-color); /* Use the raw value */
   border-color: transparent; /* Hide border when color is set */
 }
 
@@ -203,11 +212,10 @@
   cursor: default;
   padding: 2px;
 }
-/* --- FIX: Use class for interactive cursor --- */
 .solidtime-view-icon.is-interactive {
-  cursor: pointer; /* Set cursor only when interactive */
+  cursor: pointer; /* Cursor when interactive */
 }
-/* --- END FIX --- */
+
 .solidtime-view-icon:hover { /* Keep general hover */
     color: var(--text-muted);
 }

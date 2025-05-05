@@ -106,16 +106,12 @@ export class SolidTimeView extends ItemView {
         const displayProjectId = timerRunning ? entry?.project_id : this.pendingProject?.id;
 
         // Apply color/text based on displayProject (using CSS classes)
-        if (displayProject?.color) {
-            // Set the data attribute if color exists
-            this.projectColorEl.setAttribute('data-project-color', displayProject.color);
-            // Remove class might not be needed if CSS is only attribute-based now
-            this.projectColorEl.removeClass('no-project-color'); // Keep if still used for border toggling
+         if (displayProject?.color) {
+            // Set the CSS variable '--project-color' if a valid color exists
+            this.projectColorEl.style.setProperty('--project-color', displayProject.color);
         } else {
-            // Remove the data attribute if no color
-            this.projectColorEl.removeAttribute('data-project-color');
-            // Add class if used for border/default styling
-            this.projectColorEl.addClass('no-project-color');
+            // Remove the CSS variable when no color is available, letting CSS defaults take over
+            this.projectColorEl.style.removeProperty('--project-color');
         }
 
         // Set project name text based on whether the project object was found OR if just the ID exists
@@ -269,11 +265,10 @@ export class SolidTimeView extends ItemView {
                     this.pendingProject = selectedProject;
                     this.projectNameEl?.setText(selectedProject?.name || '(Click to select Project)');
                     if (selectedProject?.color) {
-                        this.projectColorEl?.setAttribute('data-project-color', selectedProject.color);
-                        this.projectColorEl?.removeClass('no-project-color');
+                        this.projectColorEl?.style.setProperty('--project-color', selectedProject.color);
                     } else {
-                        this.projectColorEl?.removeAttribute('data-project-color');
-                        this.projectColorEl?.addClass('no-project-color');
+                        // Ensure variable is removed if selected project has no color or is null
+                        this.projectColorEl?.style.removeProperty('--project-color');
                     }
                 }
             }
