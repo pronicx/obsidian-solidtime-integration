@@ -85,8 +85,8 @@ export default class SolidTimePlugin extends Plugin {
 
         // === Commands === (Commands remain the same)
         this.addCommand({
-            id: 'solidtime-start-timer',
-            name: 'Start Timer (Prompt)',
+            id: 'start-timer',
+            name: 'Start timer (prompt)',
             callback: () => {
                 if (!this.checkSettingsAndApi()) return;
                 // Check if data seems reasonable before opening modal
@@ -102,16 +102,16 @@ export default class SolidTimePlugin extends Plugin {
         });
 
         this.addCommand({
-            id: 'solidtime-stop-timer',
-            name: 'Stop Current Timer',
+            id: 'stop-timer',
+            name: 'Stop current timer',
             callback: () => {
                 this.stopCurrentTimer();
             },
         });
 
         this.addCommand({
-            id: 'solidtime-show-current-timer',
-            name: 'Show Current Timer Details',
+            id: 'show-current-timer',
+            name: 'Show current timer details',
             callback: () => {
                 if (!this.api) {
                     new Notice("SolidTime: API not configured.");
@@ -122,8 +122,8 @@ export default class SolidTimePlugin extends Plugin {
         });
 
         this.addCommand({
-            id: 'solidtime-refresh-data',
-            name: 'Refresh Projects/Tasks/Tags',
+            id: 'refresh-data',
+            name: 'Refresh projects/tasks/tags',
             callback: async () => {
                 if (!this.api || !this.settings.selectedOrganizationId) {
                     new Notice("SolidTime: Configure API and select Organization first.");
@@ -135,8 +135,8 @@ export default class SolidTimePlugin extends Plugin {
         });
 
         this.addCommand({
-            id: 'solidtime-refresh-user',
-            name: 'Refresh User Info',
+            id: 'refresh-user',
+            name: 'Refresh user info',
             callback: async () => {
                 if (!this.api) { new Notice("SolidTime: API not configured."); return; }
                 try {
@@ -151,14 +151,14 @@ export default class SolidTimePlugin extends Plugin {
         });
 
         this.addCommand({
-            id: 'solidtime-show-view',
-            name: 'Show Tracker View',
+            id: 'show-view',
+            name: 'Show tracker view',
             callback: () => {
                 this.activateView();
             },
         });
 
-        this.addRibbonIcon('clock', 'Open SolidTime Tracker', () => {
+        this.addRibbonIcon('clock', 'Open SolidTime tracker', () => {
             this.activateView();
         });
 
@@ -239,7 +239,7 @@ export default class SolidTimePlugin extends Plugin {
             this.clearTimers();
             this.activeTimeEntry = null;
             if (this.statusBarItemEl) {
-                this.statusBarItemEl.setText('SolidTime: Check Settings');
+                this.statusBarItemEl.setText('SolidTime: Check settings');
                 this.statusBarItemEl.removeClass('solidtime-active');
                 this.statusBarItemEl.removeAttribute('title');
             }
@@ -268,7 +268,7 @@ export default class SolidTimePlugin extends Plugin {
         if (!this.settings.apiKey || !this.settings.apiBaseUrl) {
             message = "SolidTime API Key or Base URL not set."; valid = false;
         } else if (!this.settings.selectedOrganizationId) {
-            message = "SolidTime Organization not selected."; valid = false;
+            message = "SolidTime organization not selected."; valid = false;
         } else if (!this.api) {
             message = "SolidTime API client not initialized.";
             this.setupApi(); // Try again
@@ -440,7 +440,7 @@ export default class SolidTimePlugin extends Plugin {
             const startDateTime = DateTime.fromISO(this.activeTimeEntry.start);
             if (!startDateTime.isValid) {
                 console.error("SolidTime: Failed to parse start time for status bar:", this.activeTimeEntry.start);
-                this.statusBarItemEl.setText('SolidTime: Invalid Date');
+                this.statusBarItemEl.setText('SolidTime: Invalid date');
                 this.statusBarItemEl.removeClass('solidtime-active'); // Ensure inactive class state
                 this.statusBarItemEl.removeAttribute('title');
                 return;
@@ -469,7 +469,7 @@ export default class SolidTimePlugin extends Plugin {
 
         } else {
             if (this.api && this.settings.selectedOrganizationId) { this.statusBarItemEl.setText('SolidTime'); }
-            else { this.statusBarItemEl.setText('SolidTime: Setup Needed'); }
+            else { this.statusBarItemEl.setText('SolidTime: Setup needed'); }
             this.statusBarItemEl.removeClass('solidtime-active'); this.statusBarItemEl.removeAttribute('title');
         }
     }

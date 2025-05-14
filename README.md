@@ -1,4 +1,4 @@
-# Obsidian SolidTime Integration Plugin
+# SolidTime Integration Plugin for Obsidian
 
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/pronicx/obsidian-solidtime-integration?style=for-the-badge&sort=semver)](https://github.com/pronicx/obsidian-solidtime-integration/releases/latest)
 [![GitHub All Releases](https://img.shields.io/github/downloads/pronicx/obsidian-solidtime-integration/total?style=for-the-badge)](https://github.com/pronicx/obsidian-solidtime-integration/releases)

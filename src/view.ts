@@ -37,7 +37,7 @@ export class SolidTimeView extends ItemView {
     }
 
     getDisplayText(): string {
-        return 'SolidTime Tracker';
+        return 'SolidTime tracker';
     }
 
     getIcon(): string {
@@ -117,7 +117,7 @@ export class SolidTimeView extends ItemView {
         // Set project name text based on whether the project object was found OR if just the ID exists
         if (displayProject) { this.projectNameEl.setText(displayProject.name); }
         else if (displayProjectId) { this.projectNameEl.setText(`(ID: ...${displayProjectId.slice(-4)})`); }
-        else { this.projectNameEl.setText('(Click to select Project)'); }
+        else { this.projectNameEl.setText('(Click to select project)'); }
 
         // Allow selecting always
         this.projectEl.onclick = () => { this.selectProject(); };
@@ -151,12 +151,12 @@ export class SolidTimeView extends ItemView {
 
         if (timerRunning && entry?.start) {
             // --- Running State ---
-            setIcon(button, 'square'); button.addClass('stop'); button.setAttribute('aria-label', 'Stop Timer');
+            setIcon(button, 'square'); button.addClass('stop'); button.setAttribute('aria-label', 'Stop timer');
             button.onclick = () => { this.plugin.stopCurrentTimer(); };
             this.updateDuration(); this.startDurationInterval();
         } else {
             // --- Idle State ---
-            setIcon(button, 'play'); button.addClass('start'); button.setAttribute('aria-label', 'Start Timer with current details');
+            setIcon(button, 'play'); button.addClass('start'); button.setAttribute('aria-label', 'Start timer with current details');
             button.onclick = () => {
                 if (!this.pendingDescription) {
                     new Notice("Please enter a description before starting the timer.");
@@ -263,7 +263,7 @@ export class SolidTimeView extends ItemView {
                 } else {
                     // Update pending state in the view
                     this.pendingProject = selectedProject;
-                    this.projectNameEl?.setText(selectedProject?.name || '(Click to select Project)');
+                    this.projectNameEl?.setText(selectedProject?.name || '(Click to select project)');
                     if (selectedProject?.color) {
                         this.projectColorEl?.style.setProperty('--project-color', selectedProject.color);
                     } else {
@@ -320,7 +320,7 @@ export class SolidTimeView extends ItemView {
 
         const startDateTime = DateTime.fromISO(this.plugin.activeTimeEntry.start);
         if (!startDateTime.isValid) {
-            this.durationEl.setText('Invalid Start');
+            this.durationEl.setText('Invalid start');
             this.clearDurationInterval();
             return;
         }

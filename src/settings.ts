@@ -39,20 +39,13 @@ export class SolidTimeSettingTab extends PluginSettingTab {
                 this.memberships = await this.plugin.api.getMemberships();
             } catch (error) {
                 console.error("SolidTime: Failed to fetch memberships for settings", error);
-                new Notice("Failed to fetch SolidTime organizations. Check API Key/URL or console.");
+                new Notice("Failed to fetch SolidTime organizations. Check API key/URL or console.");
             }
         }
         // else { console.log("SolidTime: Skipping membership fetch..."); }
         if (!Array.isArray(this.memberships)) { this.memberships = []; }
     }
 
-    async handleSettingsSaveAndRefresh() {
-        await this.plugin.saveSettings();
-        // We need to re-fetch memberships as API key/URL might have changed
-        await this.fetchMemberships();
-        // We need to re-render the display to update the organization dropdown
-        this.display();
-    }
 
     async display(): Promise<void> {
         const { containerEl } = this;
@@ -62,46 +55,37 @@ export class SolidTimeSettingTab extends PluginSettingTab {
             await this.fetchMemberships();
         }
 
-		new Setting(containerEl)
-			.setName('SolidTime API Key')
-			.setDesc('Generate an API Token from your SolidTime profile.')
-			.addText(text => { // Get reference to the input component
-                text.setPlaceholder('Enter your API Key')
-                    .setValue(this.plugin.settings.apiKey)
-                    .onChange((value) => {
-                        // Update setting immediately for responsiveness
-                        this.plugin.settings.apiKey = value.trim();
-                        // DO NOT save/refresh here
-                    });
-
-                text.inputEl.addEventListener('blur', async () => {
-                    console.log("API Key blurred, saving settings and refreshing...");
-                    await this.handleSettingsSaveAndRefresh();
-                });
-               
-            });
-
         new Setting(containerEl)
-			.setName('SolidTime API Base URL')
-			.setDesc('The base URL for the SolidTime API.')
-			.addText(text => { // Get reference to the input component
-                text.setPlaceholder('e.g., https://app.solidtime.io/api')
-                    .setValue(this.plugin.settings.apiBaseUrl)
-                    .onChange((value) => {
-                        // Update setting immediately
-                        this.plugin.settings.apiBaseUrl = value.trim().replace(/\/$/, '');
-                        // DO NOT save/refresh here
-                    });
+        .setName('SolidTime API key')
+        .setDesc('Generate an API token from your SolidTime profile.')
+        .addText(text => text
+            .setPlaceholder('Enter your API key') 
+            .setValue(this.plugin.settings.apiKey)
+            .onChange(async (value) => { // Save directly in onChange
+                this.plugin.settings.apiKey = value.trim();
+                await this.plugin.saveSettings();
+                // Fetch memberships and re-render AFTER save
+                await this.fetchMemberships();
+                this.display(); // Refresh to update org dropdown
+            }));
 
-                 text.inputEl.addEventListener('blur', async () => {
-                    console.log("Base URL blurred, saving settings and refreshing...");
-                    await this.handleSettingsSaveAndRefresh();
-                });
-                
-            });
+
+         new Setting(containerEl)
+            .setName('SolidTime API base URL')
+            .setDesc('The base URL for the SolidTime API.')
+            .addText(text => text
+                .setPlaceholder('e.g., https://app.solidtime.io/api')
+                .setValue(this.plugin.settings.apiBaseUrl)
+                .onChange(async (value) => { // Save directly in onChange
+                    this.plugin.settings.apiBaseUrl = value.trim().replace(/\/$/, '');
+                    await this.plugin.saveSettings();
+                    // Fetch memberships and re-render AFTER save
+                    await this.fetchMemberships();
+                    this.display(); // Refresh to update org dropdown
+                }));
 
         const orgSetting = new Setting(containerEl)
-            .setName('Active Organization')
+            .setName('Active organization')
             .setDesc('Select the SolidTime organization to use.');
 
         // Disable dropdown if key/URL missing or no memberships fetched
@@ -113,7 +97,7 @@ export class SolidTimeSettingTab extends PluginSettingTab {
             // Add a button to manually refresh if fetch failed
             orgSetting.setDesc('Could not load organizations. Check API Key/URL or network.');
             orgSetting.addButton(button => button
-                .setButtonText('Retry Fetch')
+                .setButtonText('Retry fetch')
                 .onClick(async () => {
                     await this.fetchMemberships();
                     this.display(); // Refresh
@@ -121,7 +105,7 @@ export class SolidTimeSettingTab extends PluginSettingTab {
         }
 
         orgSetting.addDropdown(dropdown => {
-            dropdown.addOption('', '-- Select Organization --');
+            dropdown.addOption('', '-- Select organization --');
             if (this.memberships.length > 0) {
                 this.memberships.forEach(membership => {
                     // Check if organization object exists
@@ -151,7 +135,7 @@ export class SolidTimeSettingTab extends PluginSettingTab {
 
 
         new Setting(containerEl)
-            .setName('Default Billable')
+            .setName('Default billable')
             .setDesc('Set the default billable state for new time entries.')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.defaultBillable)
@@ -161,7 +145,7 @@ export class SolidTimeSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Status Bar Update Interval (seconds)')
+            .setName('Status bar update interval (seconds)')
             .setDesc('How often to check for the current timer status (0 to disable).')
             .addText(text => text
                 .setValue(String(this.plugin.settings.statusBarUpdateIntervalSeconds))
@@ -179,7 +163,7 @@ export class SolidTimeSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Data Auto-Fetch Interval (minutes)')
+            .setName('Data auto-fetch interval (minutes)')
             .setDesc('How often to automatically refresh projects, tasks, and tags (0 to disable).')
             .addText(text => text
                 .setValue(String(this.plugin.settings.autoFetchIntervalMinutes))

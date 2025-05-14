@@ -15,9 +15,9 @@ export class ProjectSuggestModal extends SuggestModal<ProjectSuggestion> {
     constructor(app: App, projects: ProjectResource[], onChoose: (result: ProjectResource | null) => void) {
         super(app);
         // Add a "None" option
-        this.projects = [ { name: '(No Project)', id: '__NONE__' } as ProjectSuggestion, ...projects];
+        this.projects = [ { name: '(No project)', id: '__NONE__' } as ProjectSuggestion, ...projects];
         this.onChoose = onChoose;
-        this.setPlaceholder("Select a SolidTime project (or 'No Project')...");
+        this.setPlaceholder("Select a SolidTime project (or 'No project')...");
     }
 
     getSuggestions(query: string): ProjectSuggestion[] {
@@ -53,9 +53,9 @@ export class TaskSuggestModal extends SuggestModal<TaskSuggestion> {
 
     constructor(app: App, tasks: TaskResource[], onChoose: (result: TaskResource | null) => void) {
         super(app);
-         this.tasks = [ { name: '(No Task)', id: '__NONE__'} as TaskSuggestion, ...tasks];
+         this.tasks = [ { name: '(No task)', id: '__NONE__'} as TaskSuggestion, ...tasks];
         this.onChoose = onChoose;
-        this.setPlaceholder("Select a task (or 'No Task')...");
+        this.setPlaceholder("Select a task (or 'No task')...");
     }
 
     getSuggestions(query: string): TaskSuggestion[] {
@@ -105,11 +105,11 @@ export class TagSelectionModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
         contentEl.addClass('solidtime-tag-modal');
-        contentEl.createEl('h2', { text: 'Select Tags' });
+        contentEl.createEl('h2', { text: 'Select tags' });
 
         // --- New Tag Input ---
         const newTagSetting = new Setting(contentEl)
-            .setName('Create New Tag')
+            .setName('Create new tag')
             .setDesc('Enter name and click Create.');
 
         newTagSetting.addText(text => text
@@ -159,7 +159,7 @@ export class TagSelectionModal extends Modal {
         new Setting(contentEl)
              .setClass('modal-button-container')
             .addButton(button => button
-                .setButtonText('Update Tags')
+                .setButtonText('Update tags')
                 .setCta()
                 .onClick(() => {
                     this.onSubmit(Array.from(this.selectedTagIds)); // Convert Set back to array
@@ -262,7 +262,7 @@ export class StartTimerModal extends Modal {
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass('solidtime-modal');
-		contentEl.createEl('h2', { text: 'Start SolidTime Timer' });
+		contentEl.createEl('h2', { text: 'Start SolidTime timer' });
 
 		// Description
 		new Setting(contentEl)
@@ -337,7 +337,7 @@ export class StartTimerModal extends Modal {
 		new Setting(contentEl)
             .setClass('modal-button-container') // Optional class for styling
 			.addButton(button => button
-				.setButtonText('Start Timer')
+				.setButtonText('Start timer')
 				.setCta() // Makes it prominent
 				.onClick(() => {
 					if (!this.plugin.settings.selectedMemberId) {
