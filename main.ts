@@ -1,7 +1,4 @@
-import { DateTime, Duration } from 'luxon';
-
-// Keep other imports
-import { Plugin, WorkspaceLeaf, Notice, ItemView } from 'obsidian'; // Note: Removed moment from here
+import { Plugin, WorkspaceLeaf, Notice, ItemView, moment } from 'obsidian'; // Note: Removed moment from here
 import { SolidTimeSettingTab, SolidTimeSettings, DEFAULT_SETTINGS } from './src/settings';
 import { SolidTimeApi } from './src/api';
 import {
@@ -436,8 +433,7 @@ export default class SolidTimePlugin extends Plugin {
         if (!this.statusBarItemEl) return;
 
         if (this.activeTimeEntry && this.activeTimeEntry.start) { // Check if start time exists
-            // --- Luxon Conversion ---
-            const startDateTime = DateTime.fromISO(this.activeTimeEntry.start);
+            const startDateTime = moment.utc(this.activeTimeEntry.start);
             if (!startDateTime.isValid) {
                 console.error("SolidTime: Failed to parse start time for status bar:", this.activeTimeEntry.start);
                 this.statusBarItemEl.setText('SolidTime: Invalid date');
@@ -445,8 +441,8 @@ export default class SolidTimePlugin extends Plugin {
                 this.statusBarItemEl.removeAttribute('title');
                 return;
              }
-            const nowDateTime = DateTime.utc();
-            const duration = nowDateTime.diff(startDateTime); // Returns a Luxon Duration
+            const nowDateTime = moment.utc();
+            const duration = nowDateTime.diff(startDateTime);
             const formattedDuration = this.formatDuration(duration);
 
             let display = `🟢 ${formattedDuration}`;
@@ -464,7 +460,7 @@ export default class SolidTimePlugin extends Plugin {
             
             const tooltipProjectName = project?.name || `(ID: ...${this.activeTimeEntry.project_id?.slice(-6) || 'None'})`;
             
-            const localStartTime = startDateTime.toLocal().toFormat('yyyy-MM-dd HH:mm'); // Luxon format
+            const localStartTime = startDateTime.local().format('YYYY-MM-DD HH:mm');
             this.statusBarItemEl.setAttribute('title', `SolidTime Timer\nDescription: ${this.activeTimeEntry.description || '(None)'}\nProject: ${tooltipProjectName}\nStarted: ${localStartTime}`);
 
         } else {
@@ -474,13 +470,21 @@ export default class SolidTimePlugin extends Plugin {
         }
     }
 
-    // --- Luxon Conversion ---
-    // Update function signature and implementation
-    formatDuration(duration: Duration): string {
-        // Use Luxon's built-in formatting
-        return duration.toFormat('hh:mm:ss');
+    formatDuration(durationMs: number): string { // Now accepts milliseconds
+        if (isNaN(durationMs) || durationMs < 0) {
+            return "00:00:00"; // Or handle error appropriately
+        }
+        // Create a moment duration object
+        const momentDuration = moment.duration(durationMs);
+
+        // Format as HH:mm:ss
+        // PadStart ensures two digits for hours, minutes, seconds
+        const hours = String(Math.floor(momentDuration.asHours())).padStart(2, '0');
+        const minutes = String(momentDuration.minutes()).padStart(2, '0');
+        const seconds = String(momentDuration.seconds()).padStart(2, '0');
+
+        return `${hours}:${minutes}:${seconds}`;
     }
-    // --- End Luxon Conversion ---
 
     async startTimer(options: {
         description: string | null;
@@ -493,11 +497,11 @@ export default class SolidTimePlugin extends Plugin {
         if (!this.settings.selectedMemberId) { new Notice("Error: Member ID missing. Please re-select organization in settings."); return; }
         if (this.activeTimeEntry) { new Notice("SolidTime: Please stop the current timer first."); return; }
 
-        const start = DateTime.utc().toFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        const start = moment.utc().format("YYYY-MM-DDTHH:mm:ss") + 'Z';
 
         const payload: TimeEntryStartPayload = {
             member_id: this.settings.selectedMemberId,
-            start: start, // Use formatted start time
+            start: start,
             billable: options.billable,
             project_id: options.projectId,
             task_id: options.taskId,
@@ -541,7 +545,7 @@ export default class SolidTimePlugin extends Plugin {
         const entryToStop = this.activeTimeEntry!;
         const orgIdForEntry = entryToStop.organization_id;
 
-        const end = DateTime.utc().toFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        const end = moment.utc().format("YYYY-MM-DDTHH:mm:ss") + 'Z';
 
         let correctMemberId: string | null = null;
 
@@ -561,7 +565,7 @@ export default class SolidTimePlugin extends Plugin {
         if (!correctMemberId) { new Notice("Error: Could not determine correct Member ID. Cannot stop timer."); return; }
 
 
-        // Construct Payload WITHOUT 'start' field, using formatted 'end' time
+        // Construct Payload WITHOUT 'start' field
         const payloadToSend = {
             member_id: correctMemberId,
             // start: entryToStop.start, // REMOVED 'start' field
@@ -600,21 +604,17 @@ export default class SolidTimePlugin extends Plugin {
             return;
         }
 
-        // --- Luxon Conversion ---
-        const startDateTime = DateTime.fromISO(this.activeTimeEntry.start);
+        const startDateTime = moment.utc(this.activeTimeEntry.start);
         if (!startDateTime.isValid) {
             console.error("SolidTime: Failed to parse start time for details:", this.activeTimeEntry.start);
             new Notice("SolidTime: Cannot display details, invalid start time data.");
             return;
         }
-        const nowDateTime = DateTime.utc();
+        const nowDateTime = moment.utc();
         const duration = nowDateTime.diff(startDateTime);
         const formattedDuration = this.formatDuration(duration);
-        const localStartTime = startDateTime.toLocal().toFormat('yyyy-MM-dd HH:mm:ss'); // Luxon format
-        // --- End Luxon Conversion ---
-
-
-        // Fetching/Display logic remains the same, just uses Luxon vars now
+        const localStartTime = startDateTime.local().format('YYYY-MM-DD HH:mm:ss');
+    
         let project = this.projects.find(p => p.id === this.activeTimeEntry?.project_id);
         let task = this.tasks.find(t => t.id === this.activeTimeEntry?.task_id);
         const activeTags = this.tags.filter(t => this.activeTimeEntry?.tags?.includes(t.id));

@@ -1,5 +1,4 @@
-import { ItemView, WorkspaceLeaf, setIcon, Notice } from 'obsidian';
-import { DateTime, Duration } from 'luxon'; // Import Luxon
+import { ItemView, WorkspaceLeaf, setIcon, Notice, moment } from 'obsidian';
 import SolidTimePlugin from '../main';
 import { ProjectResource, TagResource } from './types';
 import { ProjectSuggestModal, TagSelectionModal } from './modals';
@@ -318,13 +317,13 @@ export class SolidTimeView extends ItemView {
             return;
         }
 
-        const startDateTime = DateTime.fromISO(this.plugin.activeTimeEntry.start);
+        const startDateTime = moment.utc(this.plugin.activeTimeEntry.start);
         if (!startDateTime.isValid) {
             this.durationEl.setText('Invalid start');
             this.clearDurationInterval();
             return;
         }
-        const nowDateTime = DateTime.utc();
+        const nowDateTime = moment.utc();
         const duration = nowDateTime.diff(startDateTime);
 
         // Update only the duration text content for efficiency

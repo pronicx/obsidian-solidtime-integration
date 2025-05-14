@@ -125,6 +125,5 @@ This plugin is released under the [MIT License](LICENSE).
 ## Acknowledgements
 
 *   Uses the [SolidTime API](https://solidtime.io/).
-*   Uses the [Luxon](https://moment.github.io/luxon/) library for date/time handling (Bundled).
 *   Built for [Obsidian](https://obsidian.md).
 *    **Inspired by and oriented towards the structure of the [obsidian-toggl-integration](https://github.com/mcndt/obsidian-toggl-integration) plugin by @mcndt.**

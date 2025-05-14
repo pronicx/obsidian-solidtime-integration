@@ -1,7 +1,7 @@
 {
 	"id": "solidtime-integration",
 	"name": "SolidTime Integration",
-	"version": "0.1.8",
+	"version": "0.1.9",
 	"minAppVersion": "1.0.0",
 	"description": "Connect SolidTime to track your work time directly within your vault.",
 	"author": "proniclabs",
