@@ -58,31 +58,39 @@ export class SolidTimeSettingTab extends PluginSettingTab {
         new Setting(containerEl)
         .setName('SolidTime API key')
         .setDesc('Generate an API token from your SolidTime profile.')
-        .addText(text => text
-            .setPlaceholder('Enter your API key') 
-            .setValue(this.plugin.settings.apiKey)
-            .onChange(async (value) => { // Save directly in onChange
-                this.plugin.settings.apiKey = value.trim();
-                await this.plugin.saveSettings();
-                // Fetch memberships and re-render AFTER save
+        .addText(text => {
+            text
+                .setPlaceholder('Enter your API key')
+                .setValue(this.plugin.settings.apiKey)
+                .onChange(async (value) => {
+                    this.plugin.settings.apiKey = value.trim();
+                    await this.plugin.saveSettings();
+                });
+
+            text.inputEl.addEventListener('blur', async () => {
                 await this.fetchMemberships();
-                this.display(); // Refresh to update org dropdown
-            }));
+                this.display();
+            });
+        });
 
 
          new Setting(containerEl)
             .setName('SolidTime API base URL')
             .setDesc('The base URL for the SolidTime API.')
-            .addText(text => text
-                .setPlaceholder('e.g., https://app.solidtime.io/api')
-                .setValue(this.plugin.settings.apiBaseUrl)
-                .onChange(async (value) => { // Save directly in onChange
-                    this.plugin.settings.apiBaseUrl = value.trim().replace(/\/$/, '');
-                    await this.plugin.saveSettings();
-                    // Fetch memberships and re-render AFTER save
+            .addText(text => {
+                text
+                    .setPlaceholder('e.g., https://app.solidtime.io/api')
+                    .setValue(this.plugin.settings.apiBaseUrl)
+                    .onChange(async (value) => {
+                        this.plugin.settings.apiBaseUrl = value.trim().replace(/\/$/, '');
+                        await this.plugin.saveSettings();
+                    });
+
+                text.inputEl.addEventListener('blur', async () => {
                     await this.fetchMemberships();
-                    this.display(); // Refresh to update org dropdown
-                }));
+                    this.display();
+                });
+            });
 
         const orgSetting = new Setting(containerEl)
             .setName('Active organization')
