@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, Notice, ItemView, moment } from 'obsidian'; // Note: Removed moment from here
+import { Plugin, WorkspaceLeaf, Notice, moment } from 'obsidian'; // Note: Removed moment from here
 import { SolidTimeSettingTab, SolidTimeSettings, DEFAULT_SETTINGS } from './src/settings';
 import { SolidTimeApi } from './src/api';
 import {
@@ -6,15 +6,13 @@ import {
     ProjectResource,
     TaskResource,
     TagResource,
-    TagStoreRequest,
     TimeEntryStartPayload,
     TimeEntryStopPayload,
-    PersonalMembershipResource,
-    MemberResource,
     UserResource
 } from './src/types';
 import { StartTimerModal } from './src/modals';
 import { SolidTimeView, SOLIDTIME_VIEW_TYPE } from './src/view';
+import { renderReport } from './src/report-renderer';
 
 
 export default class SolidTimePlugin extends Plugin {
@@ -49,6 +47,10 @@ export default class SolidTimePlugin extends Plugin {
         this.addSettingTab(new SolidTimeSettingTab(this.app, this));
 
         this.setupApi();
+
+        this.registerMarkdownCodeBlockProcessor('solidtime', async (source, el) => {
+            await renderReport(source, el, this);
+        });
 
         if (this.api) {
             try {
@@ -615,8 +617,8 @@ export default class SolidTimePlugin extends Plugin {
         const formattedDuration = this.formatDuration(duration);
         const localStartTime = startDateTime.local().format('YYYY-MM-DD HH:mm:ss');
     
-        let project = this.projects.find(p => p.id === this.activeTimeEntry?.project_id);
-        let task = this.tasks.find(t => t.id === this.activeTimeEntry?.task_id);
+        const project = this.projects.find(p => p.id === this.activeTimeEntry?.project_id);
+        const task = this.tasks.find(t => t.id === this.activeTimeEntry?.task_id);
         const activeTags = this.tags.filter(t => this.activeTimeEntry?.tags?.includes(t.id));
 
         let details = `**SolidTime Timer**\n`;

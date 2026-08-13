@@ -25,13 +25,14 @@ Connect Obsidian with your [SolidTime.io](https://solidtime.io/) account to seam
     *   Stop Current Timer.
     *   Show Tracker View (opens the sidebar view).
     *   Show Current Timer Details (displays timer info in a notice).
-    *   Refresh SolidTime Data (manually updates projects, tasks, tags).
+    *   Refresh projects/tasks/tags (manually updates projects, tasks, tags).
     *   Refresh User Info.
 *   **Modals:**
     *   Start Timer Modal for detailed entry creation.
     *   Project Suggestion Modal for quick project selection.
     *   Tag Selection Modal for managing tags on running timers (supports creating new tags).
 *   **Automatic Refresh:** Periodically fetches updated project/task/tag lists and checks the current timer status (intervals configurable).
+*   **Reports in Notes:** Render daily or weekly time reports from fenced `solidtime` code blocks.
 
 ## Requirements
 
@@ -77,7 +78,7 @@ After installing and enabling the plugin, you need to configure it:
     *   **Active Organization:** Once the API Key and Base URL are entered correctly, this dropdown should populate with the organizations your user belongs to. Select the primary organization you want to track time for by default.
     *   **Default Billable:** Choose whether new timers started via the plugin should be marked as billable by default.
     *   **Status Bar Update Interval:** How often (in seconds) the status bar item should refresh the running timer's duration. Set to 0 to disable interval updates.
-    *   **Data Auto-Fetch Interval:** How often (in minutes) the plugin should automatically fetch updated lists of projects, tasks, and tags from SolidTime. Set to 0 to disable automatic fetching (you can still use the "Refresh SolidTime Data" command).
+    *   **Data Auto-Fetch Interval:** How often (in minutes) the plugin should automatically fetch updated lists of projects, tasks, and tags from SolidTime. Set to 0 to disable automatic fetching (you can still use the "Refresh projects/tasks/tags" command).
 
 ## Usage
 
@@ -99,7 +100,7 @@ After installing and enabling the plugin, you need to configure it:
 *   **SolidTime: Stop Current Timer:** Stops the currently running timer, if any.
 *   **SolidTime: Show Tracker View:** Opens or focuses the sidebar view.
 *   **SolidTime: Show Current Timer Details:** Shows a notification with details about the currently running timer.
-*   **SolidTime: Refresh SolidTime Data:** Manually fetches the latest projects, tasks, and tags from your SolidTime account.
+*   **SolidTime: Refresh projects/tasks/tags:** Manually fetches the latest projects, tasks, and tags from your SolidTime account.
 *   **SolidTime: Refresh User Info:** Manually refetches your user details from SolidTime.
 
 ### Status Bar
@@ -107,6 +108,41 @@ After installing and enabling the plugin, you need to configure it:
 *   An item appears in the bottom status bar.
 *   When idle, it shows "SolidTime" (or "Setup Needed" if not configured).
 *   When a timer is running, it displays an icon (⏱️), the elapsed duration, and potentially the project name and truncated description. Hover over it for more details.
+
+### Reports in Notes
+
+Add a fenced `solidtime` code block to any note. Reports use the API token and active organization from the plugin settings and show entries for the signed-in user. Relative dates use the user's SolidTime timezone and configured first day of the week.
+
+Daily report for today:
+
+~~~markdown
+```solidtime
+type: daily
+date: today
+```
+~~~
+
+Weekly report for the current week:
+
+~~~markdown
+```solidtime
+type: weekly
+week: current
+```
+~~~
+
+Supported daily values are `today`, `yesterday`, and an explicit `YYYY-MM-DD` date. Supported weekly values are `current`, `last`, and an explicit `YYYY-MM-DD` date; an explicit date selects the week containing that date. The `date` and `week` options default to `today` and `current`, respectively.
+
+For example, a report pinned to the week containing February 3, 2025 is:
+
+~~~markdown
+```solidtime
+type: weekly
+week: 2025-02-03
+```
+~~~
+
+The rendered block includes a loading state, a period total, entry details, and inline empty or error states. Reports fetch current project and task names directly from SolidTime when they render.
 
 ## Contributing
 

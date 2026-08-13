@@ -14,6 +14,8 @@ import {
     TimeEntryListResponse,
     // Add other needed types like ClientResource if used
 } from './types'; // Adjust path
+import { calendarRangeToUtc } from './report';
+import { buildTimeEntryQuery, timeEntryPageLimit } from './time-entry-query';
 
 export class SolidTimeApi {
     private apiKey: string;
@@ -220,6 +222,89 @@ export class SolidTimeApi {
         }
     }
 
+    async getTimeEntries(orgId: string, userId: string, start: string, end: string, timeZone: string): Promise<TimeEntryResource[]> {
+        if (!orgId) return [];
+        const member = (await this.getMembers(orgId)).find(candidate => candidate.user_id === userId);
+        if (!member) throw new Error('Could not find your SolidTime member in the selected organization.');
+
+        const utcRange = calendarRangeToUtc(start, end, timeZone);
+        const entries = new Map<string, TimeEntryResource>();
+        let endpoint: string | null = null;
+        let offset = 0;
+        let declaredTotal: number | null = null;
+        let pageCount = 0;
+        const pageLimit = timeEntryPageLimit();
+        const absolutePageLimit = 10_000;
+        while (declaredTotal === null || entries.size < declaredTotal) {
+            pageCount += 1;
+            if (pageCount > absolutePageLimit) {
+                throw new Error('SolidTime time-entry pagination exceeded the safety limit; the complete report cannot be guaranteed.');
+            }
+            const query = buildTimeEntryQuery({
+                userId, memberId: member.id, startDate: start, endDate: end,
+                startUtc: utcRange.start, endUtc: utcRange.end, offset,
+            });
+            let response: TimeEntryListResponse | null;
+            if (endpoint === null) {
+                const currentEndpoint = `/v1/organizations/${orgId}/time-entries`;
+                response = await this.request<TimeEntryListResponse>({
+                    url: `${currentEndpoint}?${query}`, method: 'GET',
+                }, [404]);
+                endpoint = response === null ? `/v1/organization/${orgId}/time-entries` : currentEndpoint;
+                if (response === null) {
+                    response = await this.request<TimeEntryListResponse>({ url: `${endpoint}?${query}`, method: 'GET' });
+                }
+            } else {
+                response = await this.request<TimeEntryListResponse>({ url: `${endpoint}?${query}`, method: 'GET' });
+            }
+            const page = response?.data || [];
+            const responseTotal = response?.meta?.total;
+            if (typeof responseTotal !== 'number' || !Number.isFinite(responseTotal) ||
+                responseTotal < 0 || !Number.isInteger(responseTotal)) {
+                throw new Error('SolidTime did not provide valid pagination metadata; the complete report cannot be guaranteed.');
+            }
+            if (declaredTotal === null) {
+                declaredTotal = responseTotal;
+            } else if (responseTotal !== declaredTotal) {
+                throw new Error('SolidTime pagination total changed between pages; the complete report cannot be guaranteed.');
+            }
+
+            const sizeBefore = entries.size;
+            page.forEach(entry => entries.set(entry.id, entry));
+            const newUniqueEntries = entries.size - sizeBefore;
+            if (entries.size > declaredTotal) {
+                throw new Error('SolidTime returned more unique time entries than declared; the complete report cannot be guaranteed.');
+            }
+            if (entries.size < declaredTotal && page.length === 0) {
+                throw new Error('SolidTime returned an empty time-entry page before the declared total; the complete report cannot be guaranteed.');
+            }
+            if (entries.size < declaredTotal && newUniqueEntries === 0) {
+                throw new Error('SolidTime returned a repeated time-entry page; the complete report cannot be guaranteed.');
+            }
+            offset += pageLimit;
+
+            const declaredPageCount = Math.ceil(declaredTotal / pageLimit);
+            if (entries.size < declaredTotal && pageCount >= declaredPageCount) {
+                throw new Error('SolidTime pagination ended before the declared total of unique time entries was reached; the complete report cannot be guaranteed.');
+            }
+        }
+
+        if (declaredTotal === null || entries.size !== declaredTotal) {
+            throw new Error('SolidTime pagination did not match the declared total; the complete report cannot be guaranteed.');
+        }
+
+        // Older servers use date-only filters. Enforce the exact local range client-side as well.
+        const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+        });
+        return Array.from(entries.values()).filter(entry => {
+            const parts = dateFormatter.formatToParts(new Date(entry.start));
+            const value = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value;
+            const date = `${value('year')}-${value('month')}-${value('day')}`;
+            return date >= start && date <= end;
+        });
+    }
+
     // --- Time Entries ---
 
     async startTimeEntry(orgId: string, payload: TimeEntryStartPayload): Promise<TimeEntryResource> {
@@ -297,20 +382,20 @@ export class SolidTimeApi {
 
 
 
-    async getProjects(orgId: string): Promise<ProjectResource[]> {
+    async getProjects(orgId: string, includeArchived = false): Promise<ProjectResource[]> {
         if (!orgId) return [];
         // Fetch only non-archived projects by default
         // The API needs pagination handling.
-        const initialUrl = `/v1/organizations/${orgId}/projects?archived=false`;
+        const initialUrl = `/v1/organizations/${orgId}/projects?archived=${includeArchived ? 'all' : 'false'}`;
         return this.fetchAllPaginated<ProjectResource>(initialUrl);
     }
 
-    async getTasks(orgId: string, projectId?: string | null): Promise<TaskResource[]> {
+    async getTasks(orgId: string, projectId?: string | null, includeDone = false): Promise<TaskResource[]> {
         if (!orgId) return [];
-        let url = `/v1/organizations/${orgId}/tasks?done=false`; // Default to not done
-        if (projectId) {
-            url += `&project_id=${projectId}`;
-        }
+        const query: string[] = [];
+        query.push(`done=${includeDone ? 'all' : 'false'}`);
+        if (projectId) query.push(`project_id=${encodeURIComponent(projectId)}`);
+        const url = `/v1/organizations/${orgId}/tasks${query.length ? `?${query.join('&')}` : ''}`;
         return this.fetchAllPaginated<TaskResource>(url);
     }
 

@@ -234,3 +234,71 @@
 .solidtime-view-icon.billable-active.is-interactive:hover {
   color: #b0d4e8;
 }
+
+/* Reports rendered from ```solidtime code blocks. */
+.solidtime-report {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary-alt);
+  margin: var(--size-4-3) 0;
+  padding: var(--size-4-4);
+  overflow-x: auto;
+}
+
+.solidtime-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-4);
+  margin-bottom: var(--size-4-3);
+}
+
+.solidtime-report-range,
+.solidtime-report-state,
+.solidtime-report-table small {
+  color: var(--text-muted);
+}
+
+.solidtime-report-range {
+  font-size: var(--font-ui-small);
+  margin-top: var(--size-4-1);
+}
+
+.solidtime-report-total,
+.solidtime-report-duration {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.solidtime-report-table {
+  border-collapse: collapse;
+  margin: 0;
+  width: 100%;
+}
+
+.solidtime-report-table th,
+.solidtime-report-table td {
+  border: 0;
+  border-top: 1px solid var(--background-modifier-border);
+  padding: var(--size-4-2);
+  text-align: left;
+}
+
+.solidtime-report-table th {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+}
+
+.solidtime-report-table th:last-child,
+.solidtime-report-table td:last-child {
+  text-align: right;
+}
+
+.solidtime-report-table small {
+  display: block;
+}
+
+.solidtime-report-error {
+  color: var(--text-error);
+}
